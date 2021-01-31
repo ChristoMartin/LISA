@@ -260,6 +260,7 @@ def conll_srl_eval(srl_predictions, predicate_predictions, words, mask, srl_targ
     try:
       srl_eval = check_output(["perl", "bin/srl-eval.pl", gold_srl_eval_file, pred_srl_eval_file], stderr=devnull)
       srl_eval = srl_eval.decode('utf-8')
+      # print(" debug <srl_eval>: ", srl_eval)
       # print(srl_eval)
       correct, excess, missed = map(int, srl_eval.split('\n')[6].split()[1:4])
     except CalledProcessError as e:
@@ -401,6 +402,7 @@ def conll_srl_eval_np(predictions, targets, predicate_predictions, words, mask, 
 
   precision = accumulator['correct'] / (accumulator['correct'] + accumulator['excess'])
   recall = accumulator['correct'] / (accumulator['correct'] + accumulator['missed'])
+  print("debug <correct: {}|precision: {}|recall: {}>".format(correct, precision, recall))
   f1 = 2 * precision * recall / (precision + recall)
 
   return f1

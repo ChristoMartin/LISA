@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import tensorflow as tf
 import argparse
 import train_utils
@@ -49,6 +51,7 @@ if not os.path.isdir(args.save_dir):
 # Load all the various configurations
 # todo: validate json
 data_config = train_utils.load_json_configs(args.data_config)
+data_config = OrderedDict(sorted(data_config.items(), key=lambda x: x[1]['conll_idx'] if isinstance(x[1]['conll_idx'], int) else x[1]['conll_idx'][0]))
 model_config = train_utils.load_json_configs(args.model_configs)
 task_config = train_utils.load_json_configs(args.task_configs, args)
 layer_config = train_utils.load_json_configs(args.layer_configs)

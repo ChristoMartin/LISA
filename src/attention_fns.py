@@ -32,6 +32,7 @@ def dispatch(fn_name):
 def get_params(mode, attn_map, train_outputs, features, labels):
   params = {'mode': mode}
   params_map = attn_map['params']
+  # print("debug <attention fn get parameter>: ", params, params_map)
   for param_name, param_values in params_map.items():
     # if this is a map-type param, do map lookups and pass those through
     if 'label' in param_values:
@@ -44,4 +45,5 @@ def get_params(mode, attn_map, train_outputs, features, labels):
       params[param_name] = outputs_layer[param_values['output']]
     else:
       params[param_name] = param_values['value']
+  # print("debug <attention fn parameters>: ", params)
   return params

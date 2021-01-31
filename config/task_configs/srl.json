@@ -1,4 +1,4 @@
-{
+  {
   "srl": {
     "penalty": 1.0,
     "viterbi": true,

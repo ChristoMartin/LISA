@@ -174,6 +174,7 @@ def compute_qkv(antecedent, input_depth, total_key_depth, total_value_depth):
   params = tf.get_variable("qkv_transform", [1, 1, input_depth, 2*total_key_depth + total_value_depth])
   antecedent = tf.expand_dims(antecedent, 1)
   qkv_combined = tf.nn.conv2d(antecedent, params, [1, 1, 1, 1], "SAME")
+  # qkv_combined = tf.Print(qkv_combined, [tf.shape(qkv_combined)])
   qkv_combined = tf.squeeze(qkv_combined, 1)
   q, k, v = tf.split(qkv_combined, [total_key_depth, total_key_depth, total_value_depth], axis=2)
   return q, k, v
@@ -258,5 +259,6 @@ def transformer(inputs, seq_lengths, head_size, num_heads, attn_dropout, ff_drop
       x = nn_utils.layer_norm(x)
       y = conv_hidden_relu(x, relu_hidden_size, num_heads * head_size, ff_dropout)
       x = tf.add(x, tf.nn.dropout(y, prepost_dropout))
+    # x = tf.Print(x, ["transformer proceeding", x])
 
     return x

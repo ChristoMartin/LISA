@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import tensorflow as tf
 import numpy as np
 import os
@@ -106,11 +108,11 @@ class Vocab:
 
     # init maps
     vocabs = []
-    vocabs_index = {}
+    vocabs_index = OrderedDict({})
     for d in data_config:
       updatable = 'updatable' in data_config[d] and data_config[d]['updatable']
       if 'vocab' in data_config[d] and data_config[d]['vocab'] == d and (updatable or not update_only):
-        this_vocab = {}
+        this_vocab = OrderedDict({})
         if update_only and updatable and d in self.vocab_maps:
           this_vocab = self.vocab_maps[d]
         vocabs.append(this_vocab)
@@ -118,6 +120,7 @@ class Vocab:
 
     # Create vocabs from data files
     if filenames:
+      # print("debug <creating vocab>", filenames)
       for filename in filenames:
         with open(filename, 'r') as f:
           for line in f:
@@ -139,18 +142,27 @@ class Vocab:
     else:
       for d in vocabs_index.keys():
         this_vocab_map = vocabs[vocabs_index[d]]
+        # print("debug <loading vocab from {}>".format("%s/%s.txt" % (self.vocabs_dir, d)))
+        # hitting_check = set()
+        # cnt = 0
         with open("%s/%s.txt" % (self.vocabs_dir, d), 'r') as f:
           for line in f:
+            # Adding hitting check to prevent two tokens share the same count
             datum, count = line.strip().split()
+            # assert  int(count) not in hitting_check
             this_vocab_map[datum] = int(count)
+            # cnt+=1
+            # hitting_check.update(int(count))
+        # if d == 'srl':
+        #   print(this_vocab_map)
 
     # build reverse_maps, joint_label_lookup_maps
     for v in vocabs_index.keys():
 
       # build reverse_lookup map, from int -> string
       this_counts_map = vocabs[vocabs_index[v]]
-      this_map = dict(zip(this_counts_map.keys(), range(len(this_counts_map.keys()))))
-      reverse_map = dict(zip(range(len(this_counts_map.keys())), this_counts_map.keys()))
+      this_map = OrderedDict(zip(this_counts_map.keys(), range(len(this_counts_map))))
+      reverse_map = OrderedDict(zip(range(len(this_counts_map)), this_counts_map.keys()))
       self.oovs[v] = False
       if 'oov' in self.data_config[v] and self.data_config[v]['oov']:
         self.oovs[v] = True
@@ -178,7 +190,11 @@ class Vocab:
           self.joint_label_lookup_maps[map_name] = joint_to_comp_map
 
     for d in vocabs_index.keys():
+      # print("debug <updating vocab>: ", d)
+
       this_vocab_map = vocabs[vocabs_index[d]]
+      # if d=="srl":
+        # print("debug <updated map>: ", this_vocab_map)
       with open("%s/%s.txt" % (self.vocabs_dir, d), 'w') as f:
         for k, v in this_vocab_map.items():
           print("%s\t%d" % (k, v), file=f)
@@ -186,7 +202,9 @@ class Vocab:
     return {k: len(vocabs[vocabs_index[k]]) for k in vocabs_index.keys()}
 
   def make_vocab_files(self, data_config, save_dir, filenames=None):
-    return self.create_load_or_update_vocab_files(data_config, save_dir, filenames, False)
+    vocabs = self.create_load_or_update_vocab_files(data_config, save_dir, filenames, False)
+    # print(vocabs)
+    return vocabs
 
   def update(self, filenames):
     vocab_names_sizes = self.create_load_or_update_vocab_files(self.data_config, self.save_dir, filenames, True)

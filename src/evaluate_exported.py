@@ -127,6 +127,7 @@ def eval_fn(input_op, sess):
       tokens_to_keep = np.where(feats['word'] == constants.PAD_VALUE, 0, 1)
 
       combined_predictions = predictions[0]
+      # print(combined_predictions)
 
       # todo: implement ensembling
       combined_scores = {k: v for k, v in combined_predictions.items() if k.endswith("_scores")}
@@ -146,8 +147,9 @@ def eval_fn(input_op, sess):
 
       combined_predictions.update({k.replace('scores', 'predictions'): np.argmax(v, axis=-1) for k, v in combined_scores.items()})
       combined_predictions.update({k.replace('probabilities', 'predictions'): np.argmax(v, axis=-1) for k, v in combined_probabilities.items()})
-
+      print("debug <combined prediction keys>: ", combined_predictions.keys())
       for task, tran_params in transition_params.items():
+        print("debug <task & tran_params>:", task, tran_params, tran_params.shape)
         task_predictions = np.empty_like(combined_predictions['%s_predictions' % task])
         token_take_mask = util.get_token_take_mask(task, task_config, combined_predictions)
         if token_take_mask is not None:
@@ -158,6 +160,7 @@ def eval_fn(input_op, sess):
           toks_to_keep_task = tokens_to_keep
         sent_lens_task = np.sum(toks_to_keep_task, axis=-1)
         if 'srl' in transition_params:
+          print("debug <doing stuff for srl>: ",task)
           for idx, (sent, sent_len) in enumerate(zip(combined_scores['%s_scores' % task], sent_lens_task)):
             viterbi_sequence, score = tf.contrib.crf.viterbi_decode(sent[:sent_len], tran_params)
             task_predictions[idx, :sent_len] = viterbi_sequence
@@ -165,7 +168,7 @@ def eval_fn(input_op, sess):
 
       labels = {}
       for l, idx in label_idx_map.items():
-        these_labels = input_np[:, :, idx[0]:idx[1]] if idx[1] != -1 else input_np[:, :, idx[0]:]
+        these_labels = input_np[:, :, idx[0]:idx[0]+1] if idx[1] != -1 else input_np[:, :, idx[0]:]
         these_labels_masked = np.multiply(these_labels, np.expand_dims(tokens_to_keep, -1))
         # check if we need to mask another dimension
         if idx[1] == -1:

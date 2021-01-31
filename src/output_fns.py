@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import tensorflow as tf
 from tensorflow.estimator import ModeKeys
 import nn_utils
@@ -28,9 +30,11 @@ def softmax_classifier(mode, hparams, model_config, inputs, targets, num_labels,
                                            weights=tf.reshape(tokens_to_keep, [-1]),
                                            label_smoothing=hparams.label_smoothing,
                                            reduction=tf.losses.Reduction.SUM_BY_NONZERO_WEIGHTS)
-
+    # loss = tf.Print(loss, [loss], ' softmax classifier')
+    #
+    # loss = 0.
     predictions = tf.cast(tf.argmax(logits, axis=-1), tf.int32)
-
+    # loss = tf.zeros([])
     output = {
       'loss': loss,
       'predictions': predictions,
@@ -57,6 +61,8 @@ def get_separate_scores_preds_from_joint(joint_outputs, joint_maps, joint_num_la
     task_num_labels = tf.shape(tf.unique(tf.reshape(label_comp_map, [-1]))[0])[0]
     joint_probabilities = tf.nn.softmax(scores)
     joint_probabilities_flat = tf.reshape(joint_probabilities, [-1, joint_num_labels])
+    # print("debug <computing segment_ids>! ")
+    # tf.Print("debug <@get_separate_scores_preds_from_joint>:", tf.nn.embedding_lookup(label_comp_map, tf.range(joint_num_labels)))
     segment_ids = tf.squeeze(tf.nn.embedding_lookup(label_comp_map, tf.range(joint_num_labels)), -1)
     segment_scores = tf.unsorted_segment_sum(tf.transpose(joint_probabilities_flat), segment_ids, task_num_labels)
     segment_scores = tf.reshape(tf.transpose(segment_scores), [batch_size, batch_seq_len, task_num_labels])
@@ -85,10 +91,15 @@ def joint_softmax_classifier(mode, hparams, model_config, inputs, targets, num_l
       print('Transition params not yet supported in joint_softmax_classifier')
       exit(1)
 
+    # print("debug <shape of joint softmax classifier logit vs. target>", logits, " ", targets)
+
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
 
+    # print("debug <shape of joint softmax classifier ce vs. tokens_to_keep>", cross_entropy, " ", tokens_to_keep)
     cross_entropy *= tokens_to_keep
     loss = tf.reduce_sum(cross_entropy) / tf.reduce_sum(tokens_to_keep)
+    # loss = 0.
+    # loss = tf.Print(loss, [loss], ' joint softmax classifier')
 
     predictions = tf.cast(tf.argmax(logits, axis=-1), tf.int32)
 
@@ -101,7 +112,7 @@ def joint_softmax_classifier(mode, hparams, model_config, inputs, targets, num_l
 
     # now get separate-task scores and predictions for each of the maps we've passed through
     separate_output = get_separate_scores_preds_from_joint(output, joint_maps, num_labels)
-    combined_output = {**output, **separate_output}
+    combined_output = OrderedDict({**output, **separate_output})
 
     return combined_output
 
@@ -130,9 +141,16 @@ def parse_bilinear(mode, hparams, model_config, inputs, targets, num_labels, tok
     predictions = tf.argmax(arc_logits, -1)
     probabilities = tf.nn.softmax(arc_logits)
 
-    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=arc_logits, labels=targets)
-    loss = tf.reduce_sum(cross_entropy * tokens_to_keep) / num_tokens
+    # arc_logits = tf.Print(arc_logits, [arc_logits], 'parse_bilinear_arc_logit')
+    # targets = tf.Print(targets, [])
+    # targets = tf.Print(targets, [targets, tf.reduce_sum(targets)], 'parse_bilinear_targets, checking whether the target vector is passed correctly')
 
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=arc_logits, labels=targets)
+    # cross_entropy = tf.Print(cross_entropy, [cross_entropy], 'parse_ce_loss')
+    loss = tf.reduce_sum((cross_entropy * tokens_to_keep))/ num_tokens
+    # loss = 0.
+    # loss = tf.zeros([])
+    # loss = tf.Print(loss, [loss], 'parse_bilinear')
     output = {
       'loss': loss,
       'predictions': predictions,
@@ -160,7 +178,7 @@ def conditional_bilinear(mode, hparams, model_config, inputs, targets, num_label
 
   n_tokens = tf.reduce_sum(tokens_to_keep)
   loss = tf.reduce_sum(cross_entropy * tokens_to_keep) / n_tokens
-
+  # loss = tf.zeros([])
   output = {
     'loss': loss,
     'scores': logits,
@@ -310,6 +328,8 @@ def get_params(mode, model_config, task_map, train_outputs, features, labels, cu
             'hparams': hparams}
   params_map = task_map['params'] if 'params' in task_map else {}
   for param_name, param_values in params_map.items():
+    # print(param_name, ": ", param_values)
+
     # if this is a map-type param, do map lookups and pass those through
     if 'joint_maps' in param_values:
       params[param_name] = {map_name: joint_lookup_maps[map_name] for map_name in param_values['joint_maps']}
@@ -319,6 +339,7 @@ def get_params(mode, model_config, task_map, train_outputs, features, labels, cu
       params[param_name] = features[param_values['feature']]
     # otherwise, this is a previous-prediction-type param, look those up and pass through
     elif 'layer' in param_values:
+      # print("debug <train outputs>: ", train_outputs)
       outputs_layer = train_outputs[param_values['layer']]
       params[param_name] = outputs_layer[param_values['output']]
     else:

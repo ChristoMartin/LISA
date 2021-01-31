@@ -2,6 +2,7 @@ import data_converters
 
 
 def conll_data_generator(filenames, data_config):
+  print("debug <processing input data using config>: ", data_config)
   for filename in filenames:
     with open(filename, 'r') as f:
       sents = 0
@@ -9,7 +10,10 @@ def conll_data_generator(filenames, data_config):
       buf = []
       for line in f:
         line = line.strip()
+        # print("debug <input line>: ", line)
         if line:
+          # if toks <20:
+          # print("debug <input line>: ", line)
           toks += 1
           split_line = line.split()
           data_vals = []
@@ -22,7 +26,8 @@ def conll_data_generator(filenames, data_config):
               converter_params = data_converters.get_params(data_config[d], split_line, datum_idx)
               data = data_converters.dispatch(converter_name)(**converter_params)
               data_vals.extend(data)
-          # print(tuple(data_vals))
+          # if toks < 30:
+            # print("debug <data_vals>: ",tuple(data_vals))
           buf.append(tuple(data_vals))
         else:
           if buf:

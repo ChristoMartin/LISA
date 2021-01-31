@@ -118,17 +118,18 @@ def linear_layer(inputs, output_size, add_bias=True, n_splits=1, initializer=Non
 # TODO clean this up
 def MLP(inputs, output_size, func=leaky_relu, keep_prob=1.0, n_splits=1):
   """"""
-
+  # tf.Print(inputs, ["within MLP 0", inputs])
   input_shape = inputs.get_shape().as_list()
   n_dims = len(input_shape)
   batch_size = tf.shape(inputs)[0]
-  input_size = input_shape[-1]
+  input_size = tf.shape(inputs)[-1]
   shape_to_set = [tf.Dimension(None)] * (n_dims - 1) + [tf.Dimension(output_size)]
-
+  # input_shape = tf.Print(input_shape, [input_shape])
+  # tf.Print(inputs, ["within MLP 1", inputs])
   if keep_prob < 1:
     noise_shape = tf.stack([batch_size] + [1] * (n_dims - 2) + [input_size])
     inputs = tf.nn.dropout(inputs, keep_prob, noise_shape=noise_shape)
-
+  # tf.Print(inputs, ["within MLP 2", inputs])
   linear = linear_layer(inputs,
                         output_size,
                         n_splits=n_splits,
@@ -281,6 +282,8 @@ def conditional_bilinear_classifier(inputs1, inputs2, n_classes, probs, keep_pro
   else:
     probs = tf.stop_gradient(probs)
 
+  # print("debug <probability shape>: ", probs.shape)
+
   if keep_prob < 1:
     noise_shape = tf.stack([batch_size, 1, input_size])
     inputs1 = tf.nn.dropout(inputs1, keep_prob, noise_shape=noise_shape)
@@ -297,6 +300,9 @@ def conditional_bilinear_classifier(inputs1, inputs2, n_classes, probs, keep_pro
                    add_bias2=add_bias2,
                    initializer=tf.zeros_initializer())
   bilin = tf.reshape(bilin, [batch_size, bucket_size, n_classes, bucket_size])
+  # print("debug <shape of bilin vs. probs>", bilin, " ", tf.expand_dims(probs, 3))
+  # probs = tf.Print(probs, ['probs:', tf.shape(probs)])
+  # print("debug <tf.matmul(bilin, tf.expand_dims(probs, 3))@bilinear classifier>: ", tf.matmul(bilin, tf.expand_dims(probs, 3)))
   weighted_bilin = tf.squeeze(tf.matmul(bilin, tf.expand_dims(probs, 3)), -1)
 
   return weighted_bilin, bilin

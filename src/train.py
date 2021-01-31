@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import tensorflow as tf
 import argparse
 import os
@@ -49,8 +51,13 @@ util.init_logging(tf.logging.INFO)
 # Load all the various configurations
 # todo: validate json
 data_config = train_utils.load_json_configs(args.data_config)
+# print("debug <combined_config>:", data_config.items())
+data_config = OrderedDict(sorted(data_config.items(), key=lambda x: x[1]['conll_idx'] if isinstance(x[1]['conll_idx'], int) else x[1]['conll_idx'][0]))
+
+
 model_config = train_utils.load_json_configs(args.model_configs)
 task_config = train_utils.load_json_configs(args.task_configs, args)
+# print("debug <task_config>: ", task_config)
 layer_config = train_utils.load_json_configs(args.layer_configs)
 attention_config = train_utils.load_json_configs(args.attention_configs)
 
@@ -121,13 +128,14 @@ if args.debug:
 distribution = tf.contrib.distribute.MirroredStrategy(num_gpus=args.num_gpus) if args.num_gpus > 1 else None
 
 # Set up the Estimator
-checkpointing_config = tf.estimator.RunConfig(save_checkpoints_steps=hparams.eval_every_steps, keep_checkpoint_max=1,
+checkpointing_config = tf.estimator.RunConfig(save_checkpoints_steps=hparams.eval_every_steps, keep_checkpoint_max=3,
                                               train_distribute=distribution)
 estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=args.save_dir, config=checkpointing_config)
 
 # Set up early stopping -- always keep the model with the best F1
 export_assets = {"%s.txt" % vocab_name: "%s/assets.extra/%s.txt" % (args.save_dir, vocab_name)
                  for vocab_name in vocab.vocab_names_sizes.keys()}
+srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=8000,  min_steps=60000)
 tf.logging.log(tf.logging.INFO, "Exporting assets: %s" % str(export_assets))
 save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.best_model_compare_fn,
                                                                   key=args.best_eval_key),
@@ -136,7 +144,7 @@ save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.be
                                                exports_to_keep=args.keep_k_best_models)
 
 # Train forever until killed
-train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn)
+train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, hooks=[srl_early_stop_hook])
 eval_spec = tf.estimator.EvalSpec(input_fn=dev_input_fn, throttle_secs=hparams.eval_throttle_secs,
                                   exporters=[save_best_exporter])
 

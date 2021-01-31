@@ -26,6 +26,7 @@ class LISAModel:
     self.feature_idx_map = feature_idx_map
     self.label_idx_map = label_idx_map
     self.vocab = vocab
+    # print("debug <LISA task config>: ", task_config)
 
   def hparams(self, mode):
     if mode == ModeKeys.TRAIN:
@@ -65,7 +66,7 @@ class LISAModel:
     hparams = self.hparams(mode)
 
     with tf.variable_scope("LISA", reuse=tf.AUTO_REUSE):
-
+      # features = tf.Print(features, [features, tf.shape(features)], 'input features')
       batch_shape = tf.shape(features)
       batch_size = batch_shape[0]
       batch_seq_len = batch_shape[1]
@@ -83,14 +84,18 @@ class LISAModel:
 
       # Extract named features from monolithic "features" input
       feats = {f: tf.multiply(tf.cast(tokens_to_keep, tf.int32), v) for f, v in feats.items()}
+      # feats = {f: tf.Print(feats[f], [feats[f]]) for f in feats.keys()}
 
       # Extract named labels from monolithic "features" input, and mask them
       # todo fix masking -- is it even necessary?
       labels = {}
       for l, idx in self.label_idx_map.items():
-        these_labels = features[:, :, idx[0]:idx[1]] if idx[1] != -1 else features[:, :, idx[0]:]
+        # print("debug <label_idx_map idx>: ", idx)
+        these_labels = features[:, :, idx[0]:idx[0]+1] if idx[1] != -1 else features[:, :, idx[0]:]
         these_labels_masked = tf.multiply(these_labels, tf.cast(tf.expand_dims(tokens_to_keep, -1), tf.int32))
         # check if we need to mask another dimension
+        # these_labels_masked_print = tf.Print(these_labels_masked, [tf.shape(these_labels_masked), these_labels_masked, idx],
+        #                                'thses labels masked')
         if idx[1] == -1:
           last_dim = tf.shape(these_labels)[2]
           this_mask = tf.where(tf.equal(these_labels_masked, constants.PAD_VALUE),
@@ -98,9 +103,18 @@ class LISAModel:
                                tf.ones([batch_size, batch_seq_len, last_dim], dtype=tf.int32))
           these_labels_masked = tf.multiply(these_labels_masked, this_mask)
         else:
-          these_labels_masked = tf.squeeze(these_labels_masked, -1)
+          # last_dim = tf.shape(these_labels)[2]
+          # this_mask = tf.where(tf.equal(these_labels_masked_print, constants.PAD_VALUE),
+          #                      tf.zeros([batch_size, batch_seq_len, last_dim], dtype=tf.int32),
+          #                      tf.ones([batch_size, batch_seq_len, last_dim], dtype=tf.int32))
+          # these_labels_masked = tf.multiply(these_labels_masked_print, this_mask)
+          # print("debug <these labels masked>: ", these_labels_masked_print)
+          these_labels_masked = tf.squeeze(these_labels_masked, -1, name='these_labels_masked_squeezing')
+          # these_labels_masked = tf.Print(these_labels_masked, [tf.shape(these_labels_masked), these_labels_masked], 'thses labels masked after squeezed')
         labels[l] = these_labels_masked
+        # labels = [tf.Print(l, [l]) for l in labels]
 
+      # labels = [tf.Print("label_l", l)for l in labels]
       # load transition parameters
       transition_stats = util.load_transition_params(self.task_config, self.vocab)
 
@@ -118,17 +132,25 @@ class LISAModel:
           include_oov = self.vocab.oovs[embedding_name]
           embedding_table = self.get_embedding_table(embedding_name, embedding_dim, include_oov,
                                                      num_embeddings=num_embeddings)
+        # embedding_table = tf.Print(embedding_table, [tf.shape(embedding_table), embedding_table])
         embeddings[embedding_name] = embedding_table
+
         tf.logging.log(tf.logging.INFO, "Created embeddings for '%s'." % embedding_name)
 
+      # print("debug <registered lookup>: ", embeddings)
+      # tf.Print("marker", "Start processing ")
       # Set up model inputs
       inputs_list = []
       for input_name in self.model_config['inputs']:
+        # print("debug <actual inputs>:", input_name)
         input_values = feats[input_name]
+        # input_values = tf.Print(input_values, ["input value under {}".format(input_name), input_values, tf.shape(input_values)])
         input_embedding_lookup = tf.nn.embedding_lookup(embeddings[input_name], input_values)
+        # input_embedding_lookup = tf.Print(input_embedding_lookup, ["input embedding under {}".format(input_name), input_embedding_lookup])
         inputs_list.append(input_embedding_lookup)
         tf.logging.log(tf.logging.INFO, "Added %s to inputs list." % input_name)
-      current_input = tf.concat(inputs_list, axis=2)
+      # TODO a mere workaround with one element concat
+      current_input = tf.concat(inputs_list, axis=-1)
       current_input = tf.nn.dropout(current_input, hparams.input_dropout)
 
       with tf.variable_scope('project_input'):
@@ -145,6 +167,7 @@ class LISAModel:
       with tf.variable_scope('transformer'):
         current_input = transformer.add_timing_signal_1d(current_input)
         for i in range(num_layers):
+          # print("debug: <constructing {}-th layer>".format(i))
           with tf.variable_scope('layer%d' % i):
 
             special_attn = []
@@ -152,18 +175,23 @@ class LISAModel:
             if i in self.attention_config:
 
               this_layer_attn_config = self.attention_config[i]
+              # print("debug: <layer_{} config>: ".format(i), this_layer_attn_config)
+
+              # print("debug <attention configuration>@{}: ".format(i), this_layer_attn_config)
 
               if 'attention_fns' in this_layer_attn_config:
                 for attn_fn, attn_fn_map in this_layer_attn_config['attention_fns'].items():
                   attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
                   this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                   special_attn.append(this_special_attn)
+                print("debug <layer_{} special attention>: ".format(i), special_attn )
 
               if 'value_fns' in this_layer_attn_config:
                 for value_fn, value_fn_map in this_layer_attn_config['value_fns'].items():
                   value_fn_params = value_fns.get_params(mode, value_fn_map, predictions, feats, labels, embeddings)
                   this_special_values = value_fns.dispatch(value_fn_map['name'])(**value_fn_params)
                   special_values.append(this_special_values)
+                print("debug <layer_{} special values>: ".format(i), special_values)
 
             current_input = transformer.transformer(current_input, tokens_to_keep, layer_config['head_dim'],
                                                     layer_config['num_heads'], hparams.attn_dropout,
@@ -178,7 +206,10 @@ class LISAModel:
 
               # todo test a list of tasks for each layer
               for task, task_map in self.task_config[i].items():
+                # print("debug <task>: ", task)
+                # print("debug <task map>:" , task_map)
                 task_labels = labels[task]
+                # task_labels = tf.Print(task_labels, [task_labels] , 'task_label'.format(task))
                 task_vocab_size = self.vocab.vocab_names_sizes[task] if task in self.vocab.vocab_names_sizes else -1
 
                 # Set up CRF / Viterbi transition params if specified
@@ -201,8 +232,9 @@ class LISAModel:
                                                          feats, labels, current_input, task_labels, task_vocab_size,
                                                          self.vocab.joint_label_lookup_maps, tokens_to_keep,
                                                          transition_params, hparams)
+                # print("debug <dispatch into {}>".format(task_map['output_fn']['name']))
                 task_outputs = output_fns.dispatch(task_map['output_fn']['name'])(**output_fn_params)
-
+                # print("debug <task_outputs>: ", task_outputs)
                 # want task_outputs to have:
                 # - predictions
                 # - loss
@@ -226,6 +258,9 @@ class LISAModel:
                 # add this loss to the overall loss being minimized
                 loss += this_task_loss
 
+                # print("debug <accumulated loss>: ", loss)
+              # break # only take one loss
+
       # set up moving average variables
       assign_moving_averages_dep = tf.no_op()
       if hparams.moving_average_decay > 0.:
@@ -241,14 +276,29 @@ class LISAModel:
         assign_moving_averages_dep = tf.cond(tf.equal(mode, ModeKeys.TRAIN),
                                              lambda: tf.no_op(),
                                              lambda: nn_utils.set_vars_to_moving_average(moving_averager))
-
+      # print("debug <finishing setting up moving avg variables>")
       with tf.control_dependencies([assign_moving_averages_dep]):
 
         items_to_log['loss'] = loss
-
+        # print("debug <final loss>: ", loss)
         # get learning rate w/ decay
         this_step_lr = train_utils.learning_rate(hparams, tf.train.get_global_step())
         items_to_log['lr'] = this_step_lr
+        # print("debug <items to log>: ", items_to_log)
+        # print("debug <eval_metric_content>: ", eval_metric_ops)
+        #TODO: A dirty hack to print out evaluation metrics on tensorboard
+
+        # def transform_eval(name, value):
+        #   if not isinstance(value, tuple):
+        #     return [tf.summary.scalar('{}/{}'.format('eval', name), value)]
+        #   elif name == "parse_eval":
+        #     return [tf.summary.scalar('{}/{}'.format('eval', "labeled_correct"), value[0][0]),
+        #           tf.summary.scalar('{}/{}'.format('eval', "unlabeled_correct"), value[0][1]),
+        #           tf.summary.scalar('{}/{}'.format('eval', "label_correct"), value[0][2])]
+        #   else:
+        #     return [tf.summary.scalar('{}/{}'.format('eval', name), value[0])]
+
+        # print("debug <summary ops>: ", summary_op)
 
         # optimizer = tf.contrib.opt.NadamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
         #                                              beta2=hparams.beta2, epsilon=hparams.epsilon)
@@ -261,9 +311,13 @@ class LISAModel:
 
         # export_outputs = {'predict_output': tf.estimator.export.PredictOutput({'scores': scores, 'preds': preds})}
 
-        logging_hook = tf.train.LoggingTensorHook(items_to_log, every_n_iter=20)
+        logging_hook = tf.train.LoggingTensorHook(items_to_log, every_n_iter=100)
 
-        # need to flatten the dict of predictions to make Estimator happy
+        summary_hook = tf.train.SummarySaverHook(
+          save_steps=500,
+          summary_op=[tf.summary.scalar(k, items_to_log[k]) for k in items_to_log.keys()])
+
+
         flat_predictions = {"%s_%s" % (k1, k2): v2 for k1, v1 in predictions.items() for k2, v2 in v1.items()}
 
         export_outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
@@ -273,4 +327,4 @@ class LISAModel:
                        "Created model with %d trainable parameters" % tf_utils.get_num_trainable_parameters())
 
         return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
-                                          training_hooks=[logging_hook], export_outputs=export_outputs)
+                                          training_hooks=[logging_hook, summary_hook], export_outputs=export_outputs)

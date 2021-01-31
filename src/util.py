@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import numpy as np
 import tensorflow as tf
 import os
@@ -33,10 +35,13 @@ def get_immediate_subdirectories(a_dir):
 
 def load_transitions(transition_statistics, num_classes, vocab_map):
   transition_statistics_np = np.zeros((num_classes, num_classes))
+  print("debug <loading precompute transition map, vocab map>:", vocab_map)
   with open(transition_statistics, 'r') as f:
     for line in f:
       tag1, tag2, prob = line.split("\t")
+      # print("debug <loading precompute trainsition bet {}_{} and {}_{}>: ".format(tag1, vocab_map[tag1], tag2, vocab_map[tag2]), float(prob))
       transition_statistics_np[vocab_map[tag1], vocab_map[tag2]] = float(prob)
+      # print("debug <loaded matrix {}, {}>: ".format(vocab_map[tag1], vocab_map[tag2]), transition_statistics_np[vocab_map[tag1], vocab_map[tag2]])
   tf.logging.log(tf.logging.INFO, "Loaded pre-computed transition statistics: %s" % transition_statistics)
   return transition_statistics_np
 
@@ -47,7 +52,7 @@ def load_pretrained_embeddings(pretrained_fname):
   # TODO: np.loadtxt refuses to work for some reason
   # pretrained_embeddings = np.loadtxt(self.args.word_embedding_file, usecols=range(1, word_embedding_size+1))
   pretrained_embeddings = []
-  with open(pretrained_fname, 'r') as f:
+  with open(pretrained_fname, 'r', encoding="utf-8") as f:
     for line in f:
       split_line = line.split()
       embedding = list(map(float, split_line[1:]))
@@ -75,6 +80,7 @@ def load_transition_params(task_config, vocab):
       task_viterbi_decode = task_crf or 'viterbi' in task_map and task_map['viterbi']
       if task_viterbi_decode:
         transition_params_file = task_map['transition_stats'] if 'transition_stats' in task_map else None
+        # print("debug <loading transition file for {}>: ".format(task), transition_params_file)
         if not transition_params_file:
           fatal_error("Failed to load transition stats for task '%s' with crf=%r and viterbi=%r" %
                       (task, task_crf, task_viterbi_decode))
@@ -103,15 +109,20 @@ def load_feat_label_idx_maps(data_config):
   return feature_idx_map, label_idx_map
 
 def combine_attn_maps(layer_config, attention_config, task_config):
-  layer_task_config = {}
-  layer_attention_config = {}
+  if attention_config is None:
+    attention_config = []
+  layer_task_config = OrderedDict({})
+  layer_attention_config = OrderedDict({})
   for task_or_attn_name, layer in layer_config.items():
-    if task_or_attn_name in attention_config:
+    # print("debug <adding task config {} to {}>".format(task_or_attn_name, layer))
+    if task_or_attn_name in attention_config :
       layer_attention_config[layer] = attention_config[task_or_attn_name]
     elif task_or_attn_name in task_config:
       if layer not in layer_task_config:
-        layer_task_config[layer] = {}
+        layer_task_config[layer] = OrderedDict({})
+
       layer_task_config[layer][task_or_attn_name] = task_config[task_or_attn_name]
     else:
       fatal_error('No task or attention config "%s"' % task_or_attn_name)
+  # if 'parsed_label'
   return layer_task_config, layer_attention_config

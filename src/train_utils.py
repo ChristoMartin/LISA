@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import tensorflow as tf
 import json
 import re
@@ -18,7 +20,7 @@ def load_hparams(args, model_config):
   if args.debug:
     hparams.set_hparam('shuffle_buffer_multiplier', 10)
     hparams.set_hparam('eval_throttle_secs', 60)
-    hparams.set_hparam('eval_every_steps', 100)
+    hparams.set_hparam('eval_every_steps', 500)
 
   # Override those with command line hyperparams
   if args.hparams:
@@ -33,7 +35,7 @@ def get_input_fn(vocab, data_config, data_files, batch_size, num_epochs, shuffle
                  shuffle_buffer_multiplier=1, embedding_files=None):
   # this needs to be created from here (lazily) so that it ends up in the same tf.Graph as everything else
   vocab_lookup_ops = vocab.create_vocab_lookup_ops(embedding_files)
-
+  # print("debug <create vocab_lookup ops>: ", vocab_lookup_ops)
   return dataset.get_data_iterator(data_files, data_config, vocab_lookup_ops, batch_size, num_epochs, shuffle,
                                    shuffle_buffer_multiplier)
 
@@ -51,9 +53,10 @@ def load_json_configs(config_file_list, args=None):
   :param args: command line args to replace special strings in json
   :return: map containing combined configurations
   """
-  combined_config = {}
+  combined_config = OrderedDict({})
   if config_file_list:
     config_files = config_file_list.split(',')
+    # print("debug <config file list>: ", config_files)
     for config_file in config_files:
       if args:
         # read the json in as a string so that we can run a replace on it
@@ -76,14 +79,16 @@ def load_json_configs(config_file_list, args=None):
       else:
         with open(config_file) as f:
           try:
-            config = json.load(f)
+            config = json.load(f, object_pairs_hook=OrderedDict)
           except json.decoder.JSONDecodeError as e:
             tf.logging.log(tf.logging.ERROR, 'Error reading json: "%s"' % config_file)
             tf.logging.log(tf.logging.ERROR, e.msg)
             sys.exit(1)
-      combined_config = {**combined_config, **config}
-  return combined_config
-
+      # print("debug <input configs>:", config)
+      combined_config.update(config)#OrderedDict({**combined_config, **config})
+    # print("debug <combined_config>:", combined_config)
+  # return OrderedDict(sorted(combined_config.items(), key=lambda x: x[1]['conll_idx'] if isinstance(x[1]['conll_idx'], int) else x[1]['conll_idx'][0]))
+    return combined_config
 
 def copy_without_dropout(hparams):
   new_hparams = {k: (1.0 if 'dropout' in k else v) for k, v in hparams.values().items()}
