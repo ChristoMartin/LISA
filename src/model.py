@@ -156,11 +156,14 @@ class LISAModel:
       with tf.variable_scope('project_input'):
         current_input = nn_utils.MLP(current_input, sa_hidden_size, n_splits=1)
 
+      # current_input = tf.Print(current_input, [tf.shape(current_input)], "input shape")
+
       predictions = {}
       eval_metric_ops = {}
       export_outputs = {}
       loss = tf.constant(0.)
       items_to_log = {}
+
 
       num_layers = max(self.task_config.keys()) + 1
       tf.logging.log(tf.logging.INFO, "Creating transformer model with %d layers" % num_layers)
@@ -181,6 +184,7 @@ class LISAModel:
 
               if 'attention_fns' in this_layer_attn_config:
                 for attn_fn, attn_fn_map in this_layer_attn_config['attention_fns'].items():
+                  print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
                   attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
                   this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                   special_attn.append(this_special_attn)
@@ -197,6 +201,7 @@ class LISAModel:
                                                     layer_config['num_heads'], hparams.attn_dropout,
                                                     hparams.ff_dropout, hparams.prepost_dropout,
                                                     layer_config['ff_hidden_size'], special_attn, special_values)
+            # current_input = tf.Print(current_input, [tf.shape(current_input)], "LISA input after transformer")
             if i in self.task_config:
 
               # if normalization is done in layer_preprocess, then it should also be done
@@ -244,8 +249,13 @@ class LISAModel:
 
                 # do the evaluation
                 for eval_name, eval_map in task_map['eval_fns'].items():
+                  # print("debug <eval fns>:", task_map['eval_fns'])
+                  # if eval_name=="srl_f1":
+                  #   print("debug <srl taskoutput>:", task_outputs)
                   eval_fn_params = evaluation_fns.get_params(task_outputs, eval_map, predictions, feats, labels,
                                                              task_labels, self.vocab.reverse_maps, tokens_to_keep)
+                  # if eval_name=="srl_f1":
+                    # print("debug <srl eval_fn_params>:", eval_fn_params['predictions'])
                   eval_result = evaluation_fns.dispatch(eval_map['name'])(**eval_fn_params)
                   eval_metric_ops[eval_name] = eval_result
 
@@ -286,19 +296,6 @@ class LISAModel:
         items_to_log['lr'] = this_step_lr
         # print("debug <items to log>: ", items_to_log)
         # print("debug <eval_metric_content>: ", eval_metric_ops)
-        #TODO: A dirty hack to print out evaluation metrics on tensorboard
-
-        # def transform_eval(name, value):
-        #   if not isinstance(value, tuple):
-        #     return [tf.summary.scalar('{}/{}'.format('eval', name), value)]
-        #   elif name == "parse_eval":
-        #     return [tf.summary.scalar('{}/{}'.format('eval', "labeled_correct"), value[0][0]),
-        #           tf.summary.scalar('{}/{}'.format('eval', "unlabeled_correct"), value[0][1]),
-        #           tf.summary.scalar('{}/{}'.format('eval', "label_correct"), value[0][2])]
-        #   else:
-        #     return [tf.summary.scalar('{}/{}'.format('eval', name), value[0])]
-
-        # print("debug <summary ops>: ", summary_op)
 
         # optimizer = tf.contrib.opt.NadamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
         #                                              beta2=hparams.beta2, epsilon=hparams.epsilon)

@@ -242,7 +242,9 @@ def conll_srl_eval(srl_predictions, predicate_predictions, words, mask, srl_targ
   # words: batch_size x batch_seq_len tensor of ints (0/1)
 
   # need to print for every word in every sentence
+
   sent_lens = np.sum(mask, -1).astype(np.int32)
+  # print("debug <srl-predictions, targets>: {} \n {}".format(srl_predictions, srl_targets))
 
   # import time
   # debug_fname = pred_srl_eval_file.decode('utf-8') + str(time.time())
@@ -266,6 +268,7 @@ def conll_srl_eval(srl_predictions, predicate_predictions, words, mask, srl_targ
     except CalledProcessError as e:
       tf.logging.log(tf.logging.ERROR, "Call to srl-eval.pl (conll srl eval) failed.")
 
+  print( "debug <SRL correct {}, excess {}, missed {}>".format(correct, excess, missed))
   return correct, excess, missed
 
 
@@ -402,7 +405,7 @@ def conll_srl_eval_np(predictions, targets, predicate_predictions, words, mask, 
 
   precision = accumulator['correct'] / (accumulator['correct'] + accumulator['excess'])
   recall = accumulator['correct'] / (accumulator['correct'] + accumulator['missed'])
-  print("debug <correct: {}|precision: {}|recall: {}>".format(correct, precision, recall))
+  # print("debug <correct: {}|precision: {}|recall: {}>".format(correct, precision, recall))
   f1 = 2 * precision * recall / (precision + recall)
 
   return f1

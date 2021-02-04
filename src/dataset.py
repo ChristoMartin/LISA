@@ -48,7 +48,6 @@ def get_data_iterator(data_filenames, data_config, vocab_lookup_ops, batch_size,
 
     # get the names of data fields in data_config that correspond to features or labels,
     # and thus that we want to load into batches
-    # print("debug <data_config>: ",data_config)
     feature_label_names = [d for d in data_config.keys() if \
                            ('feature' in data_config[d] and data_config[d]['feature']) or
                            ('label' in data_config[d] and data_config[d]['label'])]

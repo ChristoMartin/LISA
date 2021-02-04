@@ -149,4 +149,7 @@ eval_spec = tf.estimator.EvalSpec(input_fn=dev_input_fn, throttle_secs=hparams.e
                                   exporters=[save_best_exporter])
 
 # Run training
+
+# print("debug <confirm vocab predicate content>: ", vocab.vocab_maps['predicate'])
+
 tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
