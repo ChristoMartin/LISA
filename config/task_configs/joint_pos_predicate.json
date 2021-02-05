@@ -25,6 +25,18 @@
           }
         }
       },
+      "predicate_f1": {
+        "name": "fscore",
+        "params": {
+          "predictions": {
+            "layer": "joint_pos_predicate",
+            "output": "predicate_predictions"
+          },
+          "targets": {
+            "label": "predicate"
+          }
+        }
+      },
       "pos_acc": {
         "name": "accuracy",
         "params": {

@@ -1,0 +1,17 @@
+{
+  "parse_attention_aggregation": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "params": {
+          "train_attention_aggregation": {
+            "label": ["parse_biaffine", "parse_crf", "parse_crf2o", "parse_crfnp"]
+          },
+          "eval_attention_aggregation": {
+            "label": ["parse_biaffine", "parse_crf", "parse_crf2o", "parse_crfnp"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ from model import LISAModel
 import numpy as np
 import sys
 import util
+from others import EvalResultsExporter
 
 arg_parser = argparse.ArgumentParser(description='')
 arg_parser.add_argument('--train_files', required=True,
@@ -146,7 +147,7 @@ save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.be
 # Train forever until killed
 train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, hooks=[srl_early_stop_hook])
 eval_spec = tf.estimator.EvalSpec(input_fn=dev_input_fn, throttle_secs=hparams.eval_throttle_secs,
-                                  exporters=[save_best_exporter])
+                                  exporters=[save_best_exporter, EvalResultsExporter])
 
 # Run training
 

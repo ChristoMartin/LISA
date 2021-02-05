@@ -150,15 +150,17 @@ def dot_product_attention(q, k, v,
   """
   with tf.variable_scope("dot_product_attention", values=[q, k, v]):
     # [batch, num_heads, query_length, memory_length]
+    #todo change it ! because things are hard coded
     logits = tf.matmul(q, k, transpose_b=True)
-
-    # concat special_attention to end of logits
     if special_attention:
       logits = tf.concat([logits] + list(map(lambda x: tf.expand_dims(x, 1), special_attention)), axis=1)
-
+    # concat special_attention to end of logits
     if bias is not None:
       logits += bias
-    weights = tf.nn.softmax(logits, -1)
+    if special_attention:
+      weights = tf.concat([tf.nn.softmax(logits, -1)[:, :-len(special_attention), :, :]]+list(map(lambda x: tf.expand_dims(x, 1), special_attention)), axis=1)
+    else:
+      weights = tf.nn.softmax(logits, -1)
     weights_drop = tf.nn.dropout(weights, dropout_rate)
     return tf.matmul(weights_drop, v), logits
 

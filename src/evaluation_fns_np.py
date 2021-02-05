@@ -268,7 +268,7 @@ def conll_srl_eval(srl_predictions, predicate_predictions, words, mask, srl_targ
     except CalledProcessError as e:
       tf.logging.log(tf.logging.ERROR, "Call to srl-eval.pl (conll srl eval) failed.")
 
-  print( "debug <SRL correct {}, excess {}, missed {}>".format(correct, excess, missed))
+  # print( "debug <SRL correct {}, excess {}, missed {}>".format(correct, excess, missed))
   return correct, excess, missed
 
 

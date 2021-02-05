@@ -16,18 +16,26 @@ def copy_from_predicted(mode, train_attention_to_copy, eval_attention_to_copy):
 
   return tf.cast(attention_to_copy, tf.float32)
 
-def attention_to_aggregated(mode, train_attention_aggregation, eval_attention_aggregation):
+def linear_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
   #suppose attention_to_aggregated is in list
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
-  # attention_to_aggregated = tf.stack([ for src in ])
   attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
                                  off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
-  attention_to_aggregated = nn_utils.graph_aggregation(attention_to_aggregated)
+  attention_to_aggregated = nn_utils.graph_aggregation_softmax_done(attention_to_aggregated)
   return tf.cast(attention_to_aggregated, tf.float32)
+def mean_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
+  #suppose attention_to_aggregated is in list
+  attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
+  attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
+                                 off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
+  attention_to_aggregated = nn_utils.graph_mean_aggregation(attention_to_aggregated)
+  return tf.cast(attention_to_aggregated, tf.float32)
+
 
 dispatcher = {
   'copy_from_predicted': copy_from_predicted,
-  'attention_to_aggregated': attention_to_aggregated
+  'linear_aggregation': linear_aggregation,
+  'mean_aggregation': mean_aggregation
 }
 
 

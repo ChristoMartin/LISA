@@ -22,7 +22,9 @@ def recall_tf(predictions, targets, mask):
 
 def f1_tf(predictions, targets, mask):
   with tf.name_scope('f-score'):
-    raise NotImplementedError
+    prec, prec_op = precision_tf(predictions, targets, mask)
+    recall, recall_op = recall_tf(predictions, targets, mask)
+    return 2*prec*recall/(prec+recall), tf.group([prec_op, recall_op])
 
 
 def conll_srl_eval_tf(predictions, targets, predicate_predictions, words, mask, predicate_targets, reverse_maps,
@@ -148,6 +150,8 @@ def conll_parse_eval_tf(predictions, targets, parse_head_predictions, words, mas
 dispatcher = {
   'accuracy': accuracy_tf,
   'precision': precision_tf,
+  'recall': recall_tf,
+  'fscore': f1_tf,
   'conll_srl_eval': conll_srl_eval_tf,
   'conll_parse_eval': conll_parse_eval_tf,
   'conll09_srl_eval': conll09_srl_eval_tf,
