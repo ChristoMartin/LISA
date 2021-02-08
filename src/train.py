@@ -136,7 +136,7 @@ estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=args.save_
 # Set up early stopping -- always keep the model with the best F1
 export_assets = {"%s.txt" % vocab_name: "%s/assets.extra/%s.txt" % (args.save_dir, vocab_name)
                  for vocab_name in vocab.vocab_names_sizes.keys()}
-srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=8000,  min_steps=60000)
+srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=20000,  min_steps=90000)
 tf.logging.log(tf.logging.INFO, "Exporting assets: %s" % str(export_assets))
 save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.best_model_compare_fn,
                                                                   key=args.best_eval_key),
@@ -147,7 +147,7 @@ save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.be
 # Train forever until killed
 train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, hooks=[srl_early_stop_hook])
 eval_spec = tf.estimator.EvalSpec(input_fn=dev_input_fn, throttle_secs=hparams.eval_throttle_secs,
-                                  exporters=[save_best_exporter, EvalResultsExporter])
+                                  exporters=[save_best_exporter, EvalResultsExporter('eval_results')])
 
 # Run training
 

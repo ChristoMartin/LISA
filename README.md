@@ -53,7 +53,7 @@ bin/evaluate-exported.sh config/conll05-lisa.conf --save_dir model/export/best_e
 ```
 
 # Training
-The [`bin/train.sh`](bin/train.sh) script calls [`src/train.py`](src/train.py) with parameters specified in [top-level configs](#custom-configuration-wip) (i.e. [`conll05-lisa.conf`](config/conll05-lisa.conf)) which is the entry point for training. The following table describes the command line parameters that may be passed to `src/train.py` to configure training:
+The [`bin/train.sh`](bin/train.sh) script calls [`src/train.py`](src/train.py) with parameters specified in [top-level configs](#custom-configuration-wip) (i.e. [`conll05-lisa.conf`](config/lisa/conll05-lisa.conf)) which is the entry point for training. The following table describes the command line parameters that may be passed to `src/train.py` to configure training:
 
 |     Name      |Type          |Description       | Default value |       
 |----------------|----------|------------------------|---|
@@ -108,7 +108,7 @@ TODO
 
 # Custom configuration [WIP]
 
-LISA model configuration is defined through a combination of configuration files. A top-level config defines a specific model configuration and dataset by setting other configurations. Top-level configs are written in bash, and bottom-level configs are written in json. Here is an example top-level config, [`conll05-lisa.conf`](config/conll05-lisa.conf), which defines the basic LISA model and CoNLL-2005 data:
+LISA model configuration is defined through a combination of configuration files. A top-level config defines a specific model configuration and dataset by setting other configurations. Top-level configs are written in bash, and bottom-level configs are written in json. Here is an example top-level config, [`conll05-lisa.conf`](config/lisa/conll05-lisa.conf), which defines the basic LISA model and CoNLL-2005 data:
 ```
 # use CoNLL-2005 data  
 source config/conll05.conf  

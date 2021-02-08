@@ -14,7 +14,7 @@ def copy_from_predicted(mode, train_attention_to_copy, eval_attention_to_copy):
     attention_to_copy = tf.one_hot(attention_to_copy, tf.shape(attention_to_copy)[-1], on_value=constants.VERY_LARGE,
                                    off_value=constants.VERY_SMALL)
 
-  return tf.cast(attention_to_copy, tf.float32)
+  return tf.cast(tf.nn.softmax(attention_to_copy, dim=-1), tf.float32)
 
 def linear_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
   #suppose attention_to_aggregated is in list

@@ -11,7 +11,19 @@
             "label": ["parse_biaffine", "parse_crf", "parse_crf2o", "parse_crfnp"]
           }
         },
-        "repeat": 1
+        "repeat": 3
+      },
+      "linear_aggregation": {
+        "name": "mean_aggregation",
+        "params": {
+          "train_attention_aggregation": {
+            "label": ["parse_biaffine", "parse_crf", "parse_crf2o", "parse_crfnp"]
+          },
+          "eval_attention_aggregation": {
+            "label": ["parse_biaffine", "parse_crf", "parse_crf2o", "parse_crfnp"]
+          }
+        },
+        "repeat": 3
       }
     }
   }

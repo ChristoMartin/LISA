@@ -85,6 +85,7 @@ class LISAModel:
       # Extract named features from monolithic "features" input
       feats = {f: tf.multiply(tf.cast(tokens_to_keep, tf.int32), v) for f, v in feats.items()}
       # feats = {f: tf.Print(feats[f], [feats[f]]) for f in feats.keys()}
+      print("<debug features>: ",feats)
 
       # Extract named labels from monolithic "features" input, and mask them
       # todo fix masking -- is it even necessary?
@@ -137,12 +138,12 @@ class LISAModel:
 
         tf.logging.log(tf.logging.INFO, "Created embeddings for '%s'." % embedding_name)
 
-      # print("debug <registered lookup>: ", embeddings)
+      print("debug <registered lookup>: ", embeddings)
       # tf.Print("marker", "Start processing ")
       # Set up model inputs
       inputs_list = []
       for input_name in self.model_config['inputs']:
-        # print("debug <actual inputs>:", input_name)
+        print("debug <actual inputs>:", input_name)
         input_values = feats[input_name]
         # input_values = tf.Print(input_values, ["input value under {}".format(input_name), input_values, tf.shape(input_values)])
         input_embedding_lookup = tf.nn.embedding_lookup(embeddings[input_name], input_values)
@@ -239,7 +240,7 @@ class LISAModel:
                                                          transition_params, hparams)
                 # print("debug <dispatch into {}>".format(task_map['output_fn']['name']))
                 task_outputs = output_fns.dispatch(task_map['output_fn']['name'])(**output_fn_params)
-                # print("debug <task_outputs>: ", task_outputs)
+                print("debug <task_outputs>: ", task_outputs)
                 # want task_outputs to have:
                 # - predictions
                 # - loss
@@ -305,7 +306,7 @@ class LISAModel:
         gradients, variables = zip(*optimizer.compute_gradients(loss))
         gradients, _ = tf.clip_by_global_norm(gradients, hparams.gradient_clip_norm)
         train_op = optimizer.apply_gradients(zip(gradients, variables), global_step=tf.train.get_global_step())
-
+        # train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         # export_outputs = {'predict_output': tf.estimator.export.PredictOutput({'scores': scores, 'preds': preds})}
 
         logging_hook = tf.train.LoggingTensorHook(items_to_log, every_n_iter=100)
