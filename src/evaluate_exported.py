@@ -147,9 +147,9 @@ def eval_fn(input_op, sess):
 
       combined_predictions.update({k.replace('scores', 'predictions'): np.argmax(v, axis=-1) for k, v in combined_scores.items()})
       combined_predictions.update({k.replace('probabilities', 'predictions'): np.argmax(v, axis=-1) for k, v in combined_probabilities.items()})
-      print("debug <combined prediction keys>: ", combined_predictions.keys())
+      # print("debug <combined prediction keys>: ", combined_predictions.keys())
       for task, tran_params in transition_params.items():
-        print("debug <task & tran_params>:", task, tran_params, tran_params.shape)
+        # print("debug <task & tran_params>:", task, tran_params, tran_params.shape)
         task_predictions = np.empty_like(combined_predictions['%s_predictions' % task])
         token_take_mask = util.get_token_take_mask(task, task_config, combined_predictions)
         if token_take_mask is not None:
@@ -160,7 +160,7 @@ def eval_fn(input_op, sess):
           toks_to_keep_task = tokens_to_keep
         sent_lens_task = np.sum(toks_to_keep_task, axis=-1)
         if 'srl' in transition_params:
-          print("debug <doing stuff for srl>: ",task)
+          # print("debug <doing stuff for srl>: ",task)
           for idx, (sent, sent_len) in enumerate(zip(combined_scores['%s_scores' % task], sent_lens_task)):
             viterbi_sequence, score = tf.contrib.crf.viterbi_decode(sent[:sent_len], tran_params)
             task_predictions[idx, :sent_len] = viterbi_sequence

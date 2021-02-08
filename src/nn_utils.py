@@ -2,6 +2,26 @@ import tensorflow as tf
 import numpy as np
 
 
+def graph_aggregation(dep_graph_list):
+  num_dep_grap = dep_graph_list.get_shape()[:1]
+  with tf.variable_scope("aggregation_weight"):
+    weight = tf.get_variable("weight", shape=num_dep_grap)
+    aggregated_graph = tf.math.reduce_sum(dep_graph_list * tf.reshape(tf.nn.softmax(weight), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+  return aggregated_graph
+
+
+def graph_aggregation_softmax_done(dep_graph_list):
+  num_dep_grap = dep_graph_list.get_shape()[:1]
+  with tf.variable_scope("aggregation_weight"):
+    weight = tf.get_variable("weight", shape=num_dep_grap)
+    aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(tf.nn.softmax(weight), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+  return aggregated_graph
+
+def graph_mean_aggregation(dep_graph_list):
+  with tf.variable_scope("aggregation_weight"):
+    aggregated_graph = tf.nn.softmax(tf.math.reduce_sum(dep_graph_list, axis=0), dim=-1)
+  return aggregated_graph
+
 def leaky_relu(x): return tf.maximum(0.1 * x, x)
 
 

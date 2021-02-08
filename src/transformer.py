@@ -150,17 +150,54 @@ def dot_product_attention(q, k, v,
   """
   with tf.variable_scope("dot_product_attention", values=[q, k, v]):
     # [batch, num_heads, query_length, memory_length]
+    #todo change it ! because things are hard coded
     logits = tf.matmul(q, k, transpose_b=True)
-
-    # concat special_attention to end of logits
     if special_attention:
       logits = tf.concat([logits] + list(map(lambda x: tf.expand_dims(x, 1), special_attention)), axis=1)
-
+    # concat special_attention to end of logits
     if bias is not None:
       logits += bias
-    weights = tf.nn.softmax(logits, -1)
+    if special_attention:
+      weights = tf.concat([tf.nn.softmax(logits, -1)[:, :-len(special_attention), :, :]]+list(map(lambda x: tf.expand_dims(x, 1), special_attention)), axis=1)
+    else:
+      weights = tf.nn.softmax(logits, -1)
     weights_drop = tf.nn.dropout(weights, dropout_rate)
     return tf.matmul(weights_drop, v), logits
+
+def discounting_dot_product_attention(q, k, v,
+                          bias,
+                          discounters,
+                          dropout_rate=1.0):
+  """dot-product attention.
+  Args:
+    q: a Tensor with shape [batch, heads, length_q, depth_k]
+    k: a Tensor with shape [batch, heads, length_kv, depth_k]
+    v: a Tensor with shape [batch, heads, length_kv, depth_v]
+    discounters: a Tensor with shape [batch, heads, length_q, length_kv]
+    bias: bias Tensor (see attention_bias())
+    dropout_rate: a floating point number
+    name: an optional string
+  Returns:
+    A Tensor.
+  """
+  with tf.variable_scope("discounting_dot_product_attention", values=[q, k, v, discounters]):
+    # [batch, num_heads, query_length, memory_length]
+    # todo assure the shape of logit and discounter are equal!
+    logits = tf.matmul(q, k, transpose_b=True)
+    with tf.control_dependencies([tf.debugging.assert_equal(
+      tf.shape(logits), tf.shape(discounters)
+    )]):
+      logits = logits * discounters
+
+      if bias is not None:
+        logits += bias
+      weights = tf.nn.softmax(logits, -1)
+      weights_drop = tf.nn.dropout(weights, dropout_rate)
+      # raise NotImplementedError
+      return tf.matmul(weights_drop, v), logits
+
+
+
 
 
 def compute_qkv(antecedent, input_depth, total_key_depth, total_value_depth):

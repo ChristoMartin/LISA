@@ -7,7 +7,7 @@ import time
 import random
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument('--partition', default='p:12', type=str)
+argparser.add_argument('--partition', default='p:8', type=str)
 argparser.add_argument('--repeats', default=1, type=int)
 argparser.add_argument('--cpu_memory', default='24GB', type=str)
 argparser.add_argument('--output_dir', default='hyperparams', type=str)
@@ -30,14 +30,14 @@ partition_maxjobs = [(s, int(v)) for s, v in partition_maxjobs]
 
 # these will be passed as a list of hyperparams to be parsed by tf.contrib.HParams
 params = {
-  'learning_rate': [0.04, 0.06],
+  'learning_rate': [0.04],
   'beta1': [0.9],
   'beta2': [0.98],
   'epsilon': [1e-12],
   'moving_average_decay': [0.0, 0.9999],
   'average_norms': [False],
-  'batch_size': [128, 160],
-  'gradient_clip_norm': [1.0, 1.2],
+  'batch_size': [128, 192],
+  'gradient_clip_norm': [1.0, 1.5, 5.0],
 
   # set random seed randomly, sort of
   'random_seed': [int(time.time()) + i for i in range(args.repeats)]
@@ -73,7 +73,7 @@ def add_to_partition(_partition, _setting_str, _log_str):
     save_str = "--save_dir %s" % os.path.join(log_dir, "model")
     # create bash cmd which directs into a log
     full_cmd = '%s %s %s %s' % (slurm_cmd, args.script, _setting_str, save_str)
-    bash_cmd = '%s > %s/train.log 2>&1 &' % (full_cmd, log_dir)
+    bash_cmd = '%s &> %s/train.log &' % (full_cmd, log_dir)
     print(bash_cmd)
     subprocess.call(bash_cmd, shell=True)
 
@@ -81,8 +81,8 @@ print(args.script)
 # exit()
 names, all_params = zip(*[(k, v) for k, v in params.items()])
 all_jobs = list(itertools.product(*all_params))
-# print(all_jobs)
-# exit()
+print(all_jobs)
+exit()
 print('Starting %d jobs' % (len(all_jobs)))
 random.shuffle(all_jobs)
 
@@ -99,7 +99,6 @@ for setting in all_jobs:
                 added = True
             else:
                 time.sleep(1)
-            time.sleep(1)
 
 
 print('Done. Ran %d jobs.' % len(all_jobs))

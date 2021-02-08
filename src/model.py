@@ -3,6 +3,7 @@ from tensorflow.estimator import ModeKeys
 import constants
 import evaluation_fns
 import attention_fns
+# import lib
 import value_fns
 import output_fns
 import transformer
@@ -85,6 +86,7 @@ class LISAModel:
       # Extract named features from monolithic "features" input
       feats = {f: tf.multiply(tf.cast(tokens_to_keep, tf.int32), v) for f, v in feats.items()}
       # feats = {f: tf.Print(feats[f], [feats[f]]) for f in feats.keys()}
+      print("<debug features>: ",feats)
 
       # Extract named labels from monolithic "features" input, and mask them
       # todo fix masking -- is it even necessary?
@@ -137,12 +139,12 @@ class LISAModel:
 
         tf.logging.log(tf.logging.INFO, "Created embeddings for '%s'." % embedding_name)
 
-      # print("debug <registered lookup>: ", embeddings)
+      print("debug <registered lookup>: ", embeddings)
       # tf.Print("marker", "Start processing ")
       # Set up model inputs
       inputs_list = []
       for input_name in self.model_config['inputs']:
-        # print("debug <actual inputs>:", input_name)
+        print("debug <actual inputs>:", input_name)
         input_values = feats[input_name]
         # input_values = tf.Print(input_values, ["input value under {}".format(input_name), input_values, tf.shape(input_values)])
         input_embedding_lookup = tf.nn.embedding_lookup(embeddings[input_name], input_values)
@@ -156,11 +158,14 @@ class LISAModel:
       with tf.variable_scope('project_input'):
         current_input = nn_utils.MLP(current_input, sa_hidden_size, n_splits=1)
 
+      # current_input = tf.Print(current_input, [tf.shape(current_input)], "input shape")
+
       predictions = {}
       eval_metric_ops = {}
       export_outputs = {}
       loss = tf.constant(0.)
       items_to_log = {}
+
 
       num_layers = max(self.task_config.keys()) + 1
       tf.logging.log(tf.logging.INFO, "Creating transformer model with %d layers" % num_layers)
@@ -181,6 +186,7 @@ class LISAModel:
 
               if 'attention_fns' in this_layer_attn_config:
                 for attn_fn, attn_fn_map in this_layer_attn_config['attention_fns'].items():
+                  print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
                   attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
                   this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                   special_attn.append(this_special_attn)
@@ -197,6 +203,7 @@ class LISAModel:
                                                     layer_config['num_heads'], hparams.attn_dropout,
                                                     hparams.ff_dropout, hparams.prepost_dropout,
                                                     layer_config['ff_hidden_size'], special_attn, special_values)
+            # current_input = tf.Print(current_input, [tf.shape(current_input)], "LISA input after transformer")
             if i in self.task_config:
 
               # if normalization is done in layer_preprocess, then it should also be done
@@ -286,29 +293,23 @@ class LISAModel:
         items_to_log['lr'] = this_step_lr
         # print("debug <items to log>: ", items_to_log)
         # print("debug <eval_metric_content>: ", eval_metric_ops)
-        #TODO: A dirty hack to print out evaluation metrics on tensorboard
 
-        # def transform_eval(name, value):
-        #   if not isinstance(value, tuple):
-        #     return [tf.summary.scalar('{}/{}'.format('eval', name), value)]
-        #   elif name == "parse_eval":
-        #     return [tf.summary.scalar('{}/{}'.format('eval', "labeled_correct"), value[0][0]),
-        #           tf.summary.scalar('{}/{}'.format('eval', "unlabeled_correct"), value[0][1]),
-        #           tf.summary.scalar('{}/{}'.format('eval', "label_correct"), value[0][2])]
-        #   else:
-        #     return [tf.summary.scalar('{}/{}'.format('eval', name), value[0])]
-
-        # print("debug <summary ops>: ", summary_op)
-
-        # optimizer = tf.contrib.opt.NadamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
-        #                                              beta2=hparams.beta2, epsilon=hparams.epsilon)
-        optimizer = LazyAdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
+        if hparams.optimizer == "lazyadam":
+          optimizer = LazyAdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
                                       beta2=hparams.beta2, epsilon=hparams.epsilon,
                                       use_nesterov=hparams.use_nesterov)
+        elif hparams.optimizer == "adam":
+          optimizer = tf.train.AdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
+                                                     beta2=hparams.beta2, epsilon=hparams.epsilon)
+        # elif hparams.optimizer == "radam":
+        #   optimizer = lib.RadamOptimizer(learning_rate=this_step_lr, mu=hparams.beta1,
+        #                                  nu=hparams.beta2, gamma=hparams.gamma, epsilon=hparams.epsilon)
+        else:
+          raise NotImplementedError("The specified optimizer is not implemented")
         gradients, variables = zip(*optimizer.compute_gradients(loss))
         gradients, _ = tf.clip_by_global_norm(gradients, hparams.gradient_clip_norm)
         train_op = optimizer.apply_gradients(zip(gradients, variables), global_step=tf.train.get_global_step())
-
+        # train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
         # export_outputs = {'predict_output': tf.estimator.export.PredictOutput({'scores': scores, 'preds': preds})}
 
         logging_hook = tf.train.LoggingTensorHook(items_to_log, every_n_iter=100)

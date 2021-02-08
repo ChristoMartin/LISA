@@ -35,7 +35,7 @@ def get_immediate_subdirectories(a_dir):
 
 def load_transitions(transition_statistics, num_classes, vocab_map):
   transition_statistics_np = np.zeros((num_classes, num_classes))
-  print("debug <loading precompute transition map, vocab map>:", vocab_map)
+  # print("debug <loading precompute transition map, vocab map>:", vocab_map)
   with open(transition_statistics, 'r') as f:
     for line in f:
       tag1, tag2, prob = line.split("\t")

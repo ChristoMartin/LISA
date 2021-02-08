@@ -53,6 +53,7 @@ def get_separate_scores_preds_from_joint(joint_outputs, joint_maps, joint_num_la
   batch_seq_len = output_shape[1]
   sep_outputs = {}
   for map_name, label_comp_map in joint_maps.items():
+    # print("debug <joint map>: name {}, comp_map {}".format(map_name, label_comp_map))
     short_map_name = map_name.split('_to_')[-1]
     # label_comp_predictions = tf.nn.embedding_lookup(label_comp_map, predictions)
     # sep_outputs["%s_predictions" % short_map_name] = tf.squeeze(label_comp_predictions, -1)
@@ -70,6 +71,7 @@ def get_separate_scores_preds_from_joint(joint_outputs, joint_maps, joint_num_la
 
     # use marginalized probabilities to get predictions
     sep_outputs["%s_predictions" % short_map_name] = tf.argmax(segment_scores, -1)
+  # print("debug <sep output>: ", sep_outputs)
   return sep_outputs
 
 
@@ -113,6 +115,8 @@ def joint_softmax_classifier(mode, hparams, model_config, inputs, targets, num_l
     # now get separate-task scores and predictions for each of the maps we've passed through
     separate_output = get_separate_scores_preds_from_joint(output, joint_maps, num_labels)
     combined_output = OrderedDict({**output, **separate_output})
+
+
 
     return combined_output
 
@@ -201,7 +205,7 @@ def srl_bilinear(mode, hparams, model_config, inputs, targets, num_labels, token
     :param transition_params: [num_labels x num_labels] transition parameters, if doing Viterbi decoding
     :return:
     '''
-
+    # inputs = tf.Print(inputs, [tf.shape(inputs)], "bilinear input size")
     with tf.name_scope('srl_bilinear'):
 
       def bool_mask_where_predicates(predicates_tensor):
@@ -218,7 +222,9 @@ def srl_bilinear(mode, hparams, model_config, inputs, targets, num_labels, token
       predicate_outside_idx = 0
 
       predicate_preds = predicate_preds_train if mode == tf.estimator.ModeKeys.TRAIN else predicate_preds_eval
+      # predicate_preds = tf.Print(predicate_preds, [predicate_preds], "srl-bilinear predicate prediction")
       predicate_gather_indices = tf.where(bool_mask_where_predicates(predicate_preds))
+
 
 
       # (1) project into predicate, role representations
@@ -226,6 +232,12 @@ def srl_bilinear(mode, hparams, model_config, inputs, targets, num_labels, token
         predicate_role_mlp = nn_utils.MLP(inputs, predicate_mlp_size + role_mlp_size, keep_prob=hparams.mlp_dropout)
         predicate_mlp, role_mlp = predicate_role_mlp[:, :, :predicate_mlp_size], \
                                   predicate_role_mlp[:, :, predicate_mlp_size:]
+
+      # predicate_mlp = tf.Print(predicate_mlp, [predicate_mlp, tf.shape(predicate_mlp)],
+                                       # "srl-bilinear predicate_mlp shape")
+      # role_mlp = tf.Print(role_mlp, [role_mlp, tf.shape(role_mlp)],
+      #                          "srl-bilinear role_mlp shape")
+      # predicate_gather_indices = tf.Print(predicate_gather_indices, [predicate_gather_indices], "srl-bilinear gather-indices")
 
       # (2) feed through bilinear to obtain scores
       with tf.variable_scope('Bilinear'):
@@ -238,10 +250,13 @@ def srl_bilinear(mode, hparams, model_config, inputs, targets, num_labels, token
         tiled_roles = tf.reshape(tf.tile(role_mlp, [1, batch_seq_len, 1]),
                                  [batch_size, batch_seq_len, batch_seq_len, role_mlp_size])
         gathered_roles = tf.gather_nd(tiled_roles, predicate_gather_indices)
-
+        # gathered_predicates = tf.Print(gathered_predicates, [tf.shape(gathered_predicates)], "srl-bilinear gathered_predicates shape")
+        # gathered_roles = tf.Print(gathered_roles, [tf.shape(gathered_roles)],
+        #                                "srl-bilinear gathered_roles shape")
         # now multiply them together to get (num_predicates_in_batch x batch_seq_len x num_srl_classes) tensor of scores
         srl_logits = nn_utils.bilinear_classifier_nary(gathered_predicates, gathered_roles, num_labels,
                                                        hparams.bilinear_dropout)
+        # srl_logits = tf.Print(srl_logits, [srl_logits, tf.shape(srl_logits)], "srl-bilinear logit")
         srl_logits_transposed = tf.transpose(srl_logits, [0, 2, 1])
 
       # (3) compute loss
@@ -291,6 +306,9 @@ def srl_bilinear(mode, hparams, model_config, inputs, targets, num_labels, token
                                                weights=tf.reshape(mask, [-1]),
                                                label_smoothing=hparams.label_smoothing,
                                                reduction=tf.losses.Reduction.SUM_BY_NONZERO_WEIGHTS)
+
+      # predictions = tf.Print(predictions, [predictions, tf.shape(predictions)], "srl-bilinear: prediction")
+      # srl_logits_transposed = tf.Print(srl_logits_transposed, [srl_logits_transposed, tf.shape(srl_logits_transposed)], "srl-bilinear logit")
 
       output = {
         'loss': loss,
@@ -344,4 +362,5 @@ def get_params(mode, model_config, task_map, train_outputs, features, labels, cu
       params[param_name] = outputs_layer[param_values['output']]
     else:
       params[param_name] = param_values['value']
+    # print("debug <get params, returned params>:", params)
   return params

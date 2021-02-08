@@ -12,6 +12,20 @@ def accuracy_tf(predictions, targets, mask):
   with tf.name_scope('accuracy'):
     return tf.metrics.accuracy(labels=targets, predictions=predictions, weights=mask)
 
+def precision_tf(predictions, targets, mask):
+  with tf.name_scope('precision'):
+    return tf.metrics.precision(labels=targets, predictions=predictions, weights=mask)
+
+def recall_tf(predictions, targets, mask):
+  with tf.name_scope('recall'):
+    return tf.metrics.precision(labels=targets, predictions=predictions, weights=mask)
+
+def f1_tf(predictions, targets, mask):
+  with tf.name_scope('f-score'):
+    prec, prec_op = precision_tf(predictions, targets, mask)
+    recall, recall_op = recall_tf(predictions, targets, mask)
+    return 2*prec*recall/(prec+recall), tf.group([prec_op, recall_op])
+
 
 def conll_srl_eval_tf(predictions, targets, predicate_predictions, words, mask, predicate_targets, reverse_maps,
                       gold_srl_eval_file, pred_srl_eval_file, pos_predictions, pos_targets):
@@ -24,6 +38,7 @@ def conll_srl_eval_tf(predictions, targets, predicate_predictions, words, mask, 
     missed_count = create_metric_variable("missed_count", shape=[], dtype=tf.int64)
 
     # first, use reverse maps to convert ints to strings
+    # predictions = tf.Print(predictions, [predictions], "srl_predictions")
     str_predictions = nn_utils.int_to_str_lookup_table(predictions, reverse_maps['srl'])
     str_words = nn_utils.int_to_str_lookup_table(words, reverse_maps['word'])
     str_targets = nn_utils.int_to_str_lookup_table(targets, reverse_maps['srl'])
@@ -47,8 +62,11 @@ def conll_srl_eval_tf(predictions, targets, predicate_predictions, words, mask, 
 
     precision = correct_count / (correct_count + excess_count)
     recall = correct_count / (correct_count + missed_count)
-    f1 = 2 * precision * recall / (precision + recall)
 
+
+    # precision = tf.Print(precision, [precision], "srl-precision")
+    # recall = tf.Print(recall, [recall], "srl-recall")
+    f1 = 2 * precision * recall / (precision + recall)
     return f1, f1_update_op
 
 
@@ -131,6 +149,9 @@ def conll_parse_eval_tf(predictions, targets, parse_head_predictions, words, mas
 
 dispatcher = {
   'accuracy': accuracy_tf,
+  'precision': precision_tf,
+  'recall': recall_tf,
+  'fscore': f1_tf,
   'conll_srl_eval': conll_srl_eval_tf,
   'conll_parse_eval': conll_parse_eval_tf,
   'conll09_srl_eval': conll09_srl_eval_tf,

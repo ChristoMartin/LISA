@@ -67,7 +67,7 @@ class OutputFnTests(tf.test.TestCase):
       # have a tie and default to the smaller-index label. This is why they are different
       # than if we derived them from the single task scores, which do not have a tie.
       single2_predictions_expected = tf.constant([[1, 0, 0],
-                                                  [2, 0, 1]])
+                                                  [2, 2, 1]])
 
       single1_probabilities_expected = np.array([[[0.9999999941223071, 6.1834607999999995e-09],
                                          [6.1834607999999995e-09, 0.9999999941223071],

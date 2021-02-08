@@ -1,7 +1,7 @@
 {
- "predicate_mlp_size": 200,
- "role_mlp_size": 200,
- "predicate_pred_mlp_size": 200,
+ "predicate_mlp_size": 256,
+ "role_mlp_size": 256,
+ "predicate_pred_mlp_size": 256,
  "class_mlp_size": 100,
  "attn_mlp_size": 500,
  "hparams": {
@@ -21,13 +21,13 @@
    "beta2": 0.98,
    "epsilon": 1e-12,
    "use_nesterov": true,
-   "batch_size": 372
+   "batch_size": 220
  },
  "layers": {
    "type": "transformer",
    "num_heads": 8,
-   "head_dim": 25,
-   "ff_hidden_size": 800
+   "head_dim": 50,
+   "ff_hidden_size": 1600
  },
  "embeddings": {
    "word_type": {
