@@ -35,7 +35,9 @@ hparams = {
   'attn_dropout': 1.0,
   'ff_dropout': 1.0,
   'prepost_dropout': 1.0,
-  'random_seed': int(time.time())
+  'random_seed': int(time.time()),
+  'optimizer': 'lazyadam',
+  'gamma': 0.0
 }
 
 

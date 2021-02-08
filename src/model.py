@@ -3,6 +3,7 @@ from tensorflow.estimator import ModeKeys
 import constants
 import evaluation_fns
 import attention_fns
+# import lib
 import value_fns
 import output_fns
 import transformer
@@ -240,7 +241,7 @@ class LISAModel:
                                                          transition_params, hparams)
                 # print("debug <dispatch into {}>".format(task_map['output_fn']['name']))
                 task_outputs = output_fns.dispatch(task_map['output_fn']['name'])(**output_fn_params)
-                print("debug <task_outputs>: ", task_outputs)
+                # print("debug <task_outputs>: ", task_outputs)
                 # want task_outputs to have:
                 # - predictions
                 # - loss
@@ -250,13 +251,8 @@ class LISAModel:
 
                 # do the evaluation
                 for eval_name, eval_map in task_map['eval_fns'].items():
-                  # print("debug <eval fns>:", task_map['eval_fns'])
-                  # if eval_name=="srl_f1":
-                  #   print("debug <srl taskoutput>:", task_outputs)
                   eval_fn_params = evaluation_fns.get_params(task_outputs, eval_map, predictions, feats, labels,
                                                              task_labels, self.vocab.reverse_maps, tokens_to_keep)
-                  # if eval_name=="srl_f1":
-                    # print("debug <srl eval_fn_params>:", eval_fn_params['predictions'])
                   eval_result = evaluation_fns.dispatch(eval_map['name'])(**eval_fn_params)
                   eval_metric_ops[eval_name] = eval_result
 
@@ -298,11 +294,18 @@ class LISAModel:
         # print("debug <items to log>: ", items_to_log)
         # print("debug <eval_metric_content>: ", eval_metric_ops)
 
-        # optimizer = tf.contrib.opt.NadamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
-        #                                              beta2=hparams.beta2, epsilon=hparams.epsilon)
-        optimizer = LazyAdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
+        if hparams.optimizer == "lazyadam":
+          optimizer = LazyAdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
                                       beta2=hparams.beta2, epsilon=hparams.epsilon,
                                       use_nesterov=hparams.use_nesterov)
+        elif hparams.optimizer == "adam":
+          optimizer = tf.train.AdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
+                                                     beta2=hparams.beta2, epsilon=hparams.epsilon)
+        # elif hparams.optimizer == "radam":
+        #   optimizer = lib.RadamOptimizer(learning_rate=this_step_lr, mu=hparams.beta1,
+        #                                  nu=hparams.beta2, gamma=hparams.gamma, epsilon=hparams.epsilon)
+        else:
+          raise NotImplementedError("The specified optimizer is not implemented")
         gradients, variables = zip(*optimizer.compute_gradients(loss))
         gradients, _ = tf.clip_by_global_norm(gradients, hparams.gradient_clip_norm)
         train_op = optimizer.apply_gradients(zip(gradients, variables), global_step=tf.train.get_global_step())
