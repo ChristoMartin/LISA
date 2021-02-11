@@ -136,7 +136,7 @@ estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=args.save_
 # Set up early stopping -- always keep the model with the best F1
 export_assets = {"%s.txt" % vocab_name: "%s/assets.extra/%s.txt" % (args.save_dir, vocab_name)
                  for vocab_name in vocab.vocab_names_sizes.keys()}
-srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=20000,  min_steps=90000)
+srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=50000,  min_steps=120000)
 tf.logging.log(tf.logging.INFO, "Exporting assets: %s" % str(export_assets))
 save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.best_model_compare_fn,
                                                                   key=args.best_eval_key),

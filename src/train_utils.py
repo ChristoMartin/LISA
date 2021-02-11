@@ -104,6 +104,7 @@ def get_vars_for_moving_average(average_norms):
 
 
 def learning_rate(hparams, global_step):
+  print("<debug global step>:", global_step)
   lr = hparams.learning_rate
   warmup_steps = hparams.warmup_steps
   decay_rate = hparams.decay_rate

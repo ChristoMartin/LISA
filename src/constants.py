@@ -37,7 +37,8 @@ hparams = {
   'prepost_dropout': 1.0,
   'random_seed': int(time.time()),
   'optimizer': 'lazyadam',
-  'gamma': 0.0
+  'gamma': 0.0,
+  'mode': 'train'
 }
 
 

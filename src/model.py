@@ -284,39 +284,38 @@ class LISAModel:
                                              lambda: tf.no_op(),
                                              lambda: nn_utils.set_vars_to_moving_average(moving_averager))
       # print("debug <finishing setting up moving avg variables>")
+
       with tf.control_dependencies([assign_moving_averages_dep]):
 
         items_to_log['loss'] = loss
-        # print("debug <final loss>: ", loss)
-        # get learning rate w/ decay
+          # print("debug <final loss>: ", loss)
+          # get learning rate w/ decay
+        # todo dirty workaround
         this_step_lr = train_utils.learning_rate(hparams, tf.train.get_global_step())
         items_to_log['lr'] = this_step_lr
-        # print("debug <items to log>: ", items_to_log)
-        # print("debug <eval_metric_content>: ", eval_metric_ops)
+          # print("debug <items to log>: ", items_to_log)
+          # print("debug <eval_metric_content>: ", eval_metric_ops)
 
         if hparams.optimizer == "lazyadam":
           optimizer = LazyAdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
-                                      beta2=hparams.beta2, epsilon=hparams.epsilon,
-                                      use_nesterov=hparams.use_nesterov)
+                                        beta2=hparams.beta2, epsilon=hparams.epsilon,
+                                        use_nesterov=hparams.use_nesterov)
         elif hparams.optimizer == "adam":
           optimizer = tf.train.AdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
-                                                     beta2=hparams.beta2, epsilon=hparams.epsilon)
-        # elif hparams.optimizer == "radam":
-        #   optimizer = lib.RadamOptimizer(learning_rate=this_step_lr, mu=hparams.beta1,
-        #                                  nu=hparams.beta2, gamma=hparams.gamma, epsilon=hparams.epsilon)
+                                                       beta2=hparams.beta2, epsilon=hparams.epsilon)
         else:
           raise NotImplementedError("The specified optimizer is not implemented")
         gradients, variables = zip(*optimizer.compute_gradients(loss))
         gradients, _ = tf.clip_by_global_norm(gradients, hparams.gradient_clip_norm)
         train_op = optimizer.apply_gradients(zip(gradients, variables), global_step=tf.train.get_global_step())
-        # train_op = optimizer.minimize(loss=loss, global_step=tf.train.get_global_step())
-        # export_outputs = {'predict_output': tf.estimator.export.PredictOutput({'scores': scores, 'preds': preds})}
+
+          # export_outputs = {'predict_output': tf.estimator.export.PredictOutput({'scores': scores, 'preds': preds})}
 
         logging_hook = tf.train.LoggingTensorHook(items_to_log, every_n_iter=100)
 
         summary_hook = tf.train.SummarySaverHook(
-          save_steps=500,
-          summary_op=[tf.summary.scalar(k, items_to_log[k]) for k in items_to_log.keys()])
+            save_steps=500,
+            summary_op=[tf.summary.scalar(k, items_to_log[k]) for k in items_to_log.keys()])
 
 
         flat_predictions = {"%s_%s" % (k1, k2): v2 for k1, v1 in predictions.items() for k2, v2 in v1.items()}
@@ -327,5 +326,10 @@ class LISAModel:
         tf.logging.log(tf.logging.INFO,
                        "Created model with %d trainable parameters" % tf_utils.get_num_trainable_parameters())
 
-        return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
+        if hparams.mode == 'train':
+          return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
                                           training_hooks=[logging_hook, summary_hook], export_outputs=export_outputs)
+        else:
+          return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
+                                            export_outputs=export_outputs)
+
