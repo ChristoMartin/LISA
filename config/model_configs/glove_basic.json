@@ -13,7 +13,7 @@
    "ff_dropout": 0.9,
    "prepost_dropout": 0.8,
    "moving_average_decay": 0.0,
-   "gradient_clip_norm": 1.0,
+   "gradient_clip_norm": 1.2,
    "learning_rate": 0.04,
    "decay_rate": 1.5,
    "warmup_steps": 8000,

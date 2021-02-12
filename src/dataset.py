@@ -1,6 +1,9 @@
 import tensorflow as tf
 import constants
 from data_generator import conll_data_generator
+# from tensor2tensor import utils
+
+from t2t_data_reader import input_fn, token_based_batching
 
 
 def map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names):
@@ -62,18 +65,29 @@ def get_data_iterator(data_filenames, data_config, vocab_lookup_ops, batch_size,
 
     dataset = dataset.cache()
 
+    dataset = token_based_batching(dataset=dataset,
+             batch_size_means_tokens=True,
+             batch_size_multiplier=1,
+             max_length=80,
+             # mode,
+            shuffle = shuffle,
+            batchsize=5192,
+            min_length=0,
+            batch_shuffle_size=51920)
+    # todo if buffer size is not precisely x-times larger than batch-size, may lead to biased sampling....!!!!
+
     # do batching
-    dataset = dataset.apply(tf.contrib.data.bucket_by_sequence_length(element_length_func=lambda d: tf.shape(d)[0],
-                                                                      bucket_boundaries=bucket_boundaries,
-                                                                      bucket_batch_sizes=bucket_batch_sizes,
-                                                                      padded_shapes=dataset.output_shapes,
-                                                                      padding_values=constants.PAD_VALUE))
+    # dataset = dataset.apply(tf.contrib.data.bucket_by_sequence_length(element_length_func=lambda d: tf.shape(d)[0],
+    #                                                                   bucket_boundaries=bucket_boundaries,
+    #                                                                   bucket_batch_sizes=bucket_batch_sizes,
+    #                                                                   padded_shapes=dataset.output_shapes,
+    #                                                                   padding_values=constants.PAD_VALUE))
 
     # shuffle and expand out epochs if training
-    #TODO: disabling shuffling for debuging
-    if shuffle:
-      dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(buffer_size=batch_size*shuffle_buffer_multiplier,
-                                                                 count=num_epochs))
+    # TODO: disabling shuffling for debuging
+    # if shuffle:
+    #   dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(buffer_size=batch_size*shuffle_buffer_multiplier,
+    #                                                              count=num_epochs))
       # dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(buffer_size=batch_size,
       #                                                            count=num_epochs))
 
