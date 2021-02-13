@@ -42,6 +42,8 @@ arg_parser.add_argument('--keep_k_best_models', type=int,
                         help='Number of best models to keep.')
 arg_parser.add_argument('--best_eval_key', required=True, type=str,
                         help='Key corresponding to the evaluation to be used for determining early stopping.')
+arg_parser.add_argument('--early_stopping', type=bool, default=False,
+                        help='whether to use early stopping for training -> may lead to unmature stopping')
 
 arg_parser.set_defaults(debug=False, num_gpus=1, keep_k_best_models=1)
 
@@ -91,13 +93,15 @@ embedding_files = [embeddings_map['pretrained_embeddings'] for embeddings_map in
 
 def train_input_fn():
   return train_utils.get_input_fn(vocab, data_config, train_filenames, hparams.batch_size,
-                                  num_epochs=hparams.num_train_epochs, shuffle=True, embedding_files=embedding_files,
+                                  num_epochs=hparams.num_train_epochs, shuffle=True,
+                                  is_token_based_batching = hparams.is_token_based_batching,
+                                  embedding_files=embedding_files,
                                   shuffle_buffer_multiplier=hparams.shuffle_buffer_multiplier)
 
 
 def dev_input_fn():
   return train_utils.get_input_fn(vocab, data_config, dev_filenames, hparams.batch_size, num_epochs=1, shuffle=False,
-                                  embedding_files=embedding_files)
+                                  embedding_files=embedding_files, is_token_based_batching = hparams.is_token_based_batching)
 
 
 # Generate mappings from feature/label names to indices in the model_fn inputs
@@ -136,7 +140,7 @@ estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=args.save_
 # Set up early stopping -- always keep the model with the best F1
 export_assets = {"%s.txt" % vocab_name: "%s/assets.extra/%s.txt" % (args.save_dir, vocab_name)
                  for vocab_name in vocab.vocab_names_sizes.keys()}
-srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=50000,  min_steps=120000)
+srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=50000,  min_steps=150000)
 tf.logging.log(tf.logging.INFO, "Exporting assets: %s" % str(export_assets))
 save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.best_model_compare_fn,
                                                                   key=args.best_eval_key),
@@ -145,7 +149,7 @@ save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.be
                                                exports_to_keep=args.keep_k_best_models)
 
 # Train forever until killed
-train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, hooks=[srl_early_stop_hook])
+train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, hooks=[srl_early_stop_hook] if args.early_stopping else None)
 eval_spec = tf.estimator.EvalSpec(input_fn=dev_input_fn, throttle_secs=hparams.eval_throttle_secs,
                                   exporters=[save_best_exporter, EvalResultsExporter('eval_results')])
 
