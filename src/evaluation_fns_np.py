@@ -93,6 +93,41 @@ def accuracy_np(predictions, targets, mask, accumulator):
   return accuracy
 
 
+def precision_np(predictions, targets, mask, accumulator):
+  # print(predictions)
+  tpfp = np.multiply(mask, predictions != 0)
+  tp = np.sum(np.multiply(predictions == targets, tpfp))
+  tpfp = np.sum(tpfp)
+
+  accumulator['tp'] += tp
+  accumulator['tpfp'] += tpfp
+  # print('tp:{} tpfp:{}'.format(accumulator['tp'], accumulator['tpfp']))
+
+  precision = accumulator['tp'] / accumulator['tpfp']
+  return precision
+
+def recall_np(predictions, targets, mask, accumulator):
+  tpfn = np.multiply(mask, targets != 0)
+  # tp = accumulator['tp']#np.sum(np.multiply(predictions == targets and prediction != 0, tpfn))
+  tpfn = np.sum(tpfn)
+
+  # accumulator['tp'] += tp
+  accumulator['tpfn'] += tpfn
+  # print('tp:{} tpfp:{}'.format(accumulator['tp'], accumulator['tpfn']))
+
+  recall = accumulator['tp'] / accumulator['tpfn']
+  return recall
+
+def f1_np(predictions, targets, mask, accumulator):
+  precision = precision_np(predictions, targets, mask, accumulator)
+  recall = recall_np(predictions, targets, mask, accumulator)
+
+  # accumulator['correct'] += correct
+  # accumulator['total'] += total
+  fscore = 2*precision*recall/(precision+recall)
+  # recall = accumulator['correct'] / accumulator['total']
+  return fscore
+
 # Write targets file w/ format:
 # -        (A1*  (A1*
 # -          *     *
@@ -403,6 +438,8 @@ def conll_srl_eval_np(predictions, targets, predicate_predictions, words, mask, 
   accumulator['excess'] += excess
   accumulator['missed'] += missed
 
+  print("<debug srl c {}, excess {}, missed{}>".format(accumulator['correct'], accumulator['excess'], accumulator['missed']))
+
   precision = accumulator['correct'] / (accumulator['correct'] + accumulator['excess'])
   recall = accumulator['correct'] / (accumulator['correct'] + accumulator['missed'])
   # print("debug <correct: {}|precision: {}|recall: {}>".format(correct, precision, recall))
@@ -464,6 +501,9 @@ def conll_parse_eval_np(predictions, targets, parse_head_predictions, words, mas
 
 fn_dispatcher = {
   'accuracy': accuracy_np,
+  'precision': precision_np,
+  'recall': recall_np,
+  'fscore': f1_np,
   'conll_srl_eval': conll_srl_eval_np,
   'conll_parse_eval': conll_parse_eval_np,
   'conll09_srl_eval': conll09_srl_eval_np
@@ -472,6 +512,7 @@ fn_dispatcher = {
 
 accumulator_factory = {
   'accuracy': lambda: {'correct': 0., 'total': 0.},
+  'fscore': lambda: {'tp': 0., 'tpfn': 0., 'tpfp': 0.},
   'conll_srl_eval': lambda: {'correct': 0., 'excess': 0., 'missed': 0.},
   'conll_parse_eval': lambda: {'total': 0., 'corrects': np.zeros(3)},
   'conll09_srl_eval': lambda: {'correct': 0., 'excess': 0., 'missed': 0.},

@@ -1,6 +1,11 @@
+from collections import OrderedDict
+
 import tensorflow as tf
 import numpy as np
 import argparse
+
+from tensorflow.estimator import WarmStartSettings
+
 import train_utils
 from vocab import Vocab
 import sys
@@ -9,6 +14,7 @@ import evaluation_fns_np as eval_fns
 import constants
 import os
 import util
+from model import LISAModel
 
 
 arg_parser = argparse.ArgumentParser(description='')
@@ -52,6 +58,7 @@ if not os.path.isdir(args.save_dir):
 # Load all the various configurations
 # todo: validate json
 data_config = train_utils.load_json_configs(args.data_config)
+data_config = OrderedDict(sorted(data_config.items(), key=lambda x: x[1]['conll_idx'] if isinstance(x[1]['conll_idx'], int) else x[1]['conll_idx'][0]))
 model_config = train_utils.load_json_configs(args.model_configs)
 task_config = train_utils.load_json_configs(args.task_configs, args)
 layer_config = train_utils.load_json_configs(args.layer_configs)
@@ -95,11 +102,20 @@ feature_idx_map, label_idx_map = util.load_feat_label_idx_maps(data_config)
 # need to load these here for ensembling (they're also loaded by the model)
 transition_params = util.load_transition_params(layer_task_config, vocab)
 
+def constrcut_predictor(path):
+    model = LISAModel(hparams, model_config, layer_task_config, layer_attention_config, feature_idx_map, label_idx_map,
+                      vocab)
+    # ws = WarmStartSettings(ckpt_to_initialize_from=path,
+    #                   vars_to_warm_start=".*")
+    estimator = tf.estimator.Estimator(model_fn=model.model_fn, warm_start_from=path)
+    return estimator
+
 if args.ensemble:
   predict_fns = [predictor.from_saved_model("%s/%s" % (args.save_dir, subdir))
                  for subdir in util.get_immediate_subdirectories(args.save_dir)]
 else:
   predict_fns = [predictor.from_saved_model(args.save_dir)]
+  # predict_fns = [predictor.from_estimator(constrcut_predictor(args.save_dir), serving_input_receiver_fn=train_utils.serving_input_receiver_fn)]
 
 
 def dev_input_fn():
@@ -116,6 +132,7 @@ def eval_fn(input_op, sess):
     try:
       # input_np = sess.run(dev_input_fn())
       input_np = sess.run(input_op)
+      # print("<debug input_np>: {}".format(input_np))
       predictor_input = {'input': input_np}
       predictions = [predict_fn(predictor_input) for predict_fn in predict_fns]
 
@@ -128,6 +145,7 @@ def eval_fn(input_op, sess):
 
       combined_predictions = predictions[0]
       # print(combined_predictions)
+      # print([i for i in combined_predictions])
 
       # todo: implement ensembling
       combined_scores = {k: v for k, v in combined_predictions.items() if k.endswith("_scores")}
