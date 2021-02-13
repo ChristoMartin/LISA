@@ -124,7 +124,7 @@ estimator.evaluate(input_fn=dev_input_fn)
 if args.combine_test_files:
   def test_input_fn():
     return train_utils.get_input_fn(vocab, data_config, test_filenames, hparams.batch_size, num_epochs=1, shuffle=False,
-                                    embedding_files=embedding_files)
+                                    is_token_based_batching = hparams.is_token_based_batching, embedding_files=embedding_files)
 
   tf.logging.log(tf.logging.INFO, "Evaluating on test files: %s" % str(test_filenames))
   estimator.evaluate(input_fn=test_input_fn)
@@ -133,7 +133,7 @@ else:
   for test_file in test_filenames:
     def test_input_fn():
       return train_utils.get_input_fn(vocab, data_config, [test_file], hparams.batch_size, num_epochs=1, shuffle=False,
-                                      embedding_files=embedding_files)
+                                      is_token_based_batching = hparams.is_token_based_batching, embedding_files=embedding_files)
 
 
     tf.logging.log(tf.logging.INFO, "Evaluating on test file: %s" % str(test_file))

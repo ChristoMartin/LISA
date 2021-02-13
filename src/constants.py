@@ -20,11 +20,11 @@ hparams = {
   'beta2': 0.98,
   'epsilon': 1e-12,
   'use_nesterov': True,
-  'batch_size': 256,
+  'batch_size': 5192,
   'shuffle_buffer_multiplier': 100,
   'eval_throttle_secs': 800,
   'eval_every_steps': 1000,
-  'num_train_epochs': 10000,
+  'num_train_epochs': 100000,
   'gradient_clip_norm': 5.0,
   'label_smoothing': 0.1,
   'moving_average_decay': 0.999,
@@ -37,7 +37,8 @@ hparams = {
   'prepost_dropout': 1.0,
   'random_seed': int(time.time()),
   'optimizer': 'lazyadam',
-  'gamma': 0.0
+  'gamma': 0.0,
+  'is_token_based_batching': True
 }
 
 

@@ -283,6 +283,7 @@ def token_based_batching(dataset,
              max_length,
              # mode,
             shuffle,
+            num_epochs,
             batchsize,
             min_length,
             batch_shuffle_size,
@@ -302,7 +303,7 @@ def token_based_batching(dataset,
 
   # Repeat and skip a random number of records
   if shuffle:
-    dataset = dataset.repeat()
+    dataset = dataset.repeat(num_epochs)
 
   # dataset = dataset.map(cast_ints_to_int32, num_parallel_calls=num_threads)
 
