@@ -18,7 +18,7 @@ def load_hparams(args, model_config):
     hparams.override_from_dict(model_config['hparams'])
 
   if args.debug:
-    hparams.set_hparam('shuffle_buffer_multiplier', 10)
+    hparams.set_hparam('shuffle_buffer_multiplier', 1)
     hparams.set_hparam('eval_throttle_secs', 60)
     hparams.set_hparam('eval_every_steps', 500)
 

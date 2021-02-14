@@ -8,7 +8,7 @@ import random
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--partition', default='p:12', type=str)
-argparser.add_argument('--repeats', default=1, type=int)
+argparser.add_argument('--repeats', default=2, type=int)
 argparser.add_argument('--cpu_memory', default='24GB', type=str)
 argparser.add_argument('--output_dir', default='hyperparams', type=str)
 argparser.add_argument('--script', type=str)
@@ -19,7 +19,7 @@ user = os.environ["USER"]
 
 datetime_str = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
 
-out_dir = os.path.join(args.output_dir, "tune-" + datetime_str)
+out_dir = os.path.join(args.output_dir, "tune-tbatching-" + datetime_str)
 print("Writing to output dir: %s" % out_dir)
 
 if not os.path.exists(out_dir):
@@ -30,14 +30,14 @@ partition_maxjobs = [(s, int(v)) for s, v in partition_maxjobs]
 
 # these will be passed as a list of hyperparams to be parsed by tf.contrib.HParams
 params = {
-  'learning_rate': [0.04, 0.06],
+  'learning_rate': [0.06],
   'beta1': [0.9],
   'beta2': [0.98],
   'epsilon': [1e-12],
-  'moving_average_decay': [0.0, 0.9999],
+  'moving_average_decay': [0.0],
   'average_norms': [False],
   'batch_size': [4096, 5120, 6192, 8192],
-  'gradient_clip_norm': [1.0, 1.2],
+  'gradient_clip_norm': [1.2],
   'is_token_based_batching': [True],
   # set random seed randomly, sort of
   'random_seed': [int(time.time()) + i for i in range(args.repeats)]

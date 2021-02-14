@@ -23,7 +23,7 @@
    "use_nesterov": true,
    "batch_size": 6192,
    "is_token_based_batching": true,
-   "special_attention_mode": "injection"
+   "special_attention_mode": "discounting"
  },
  "layers": {
    "type": "transformer",

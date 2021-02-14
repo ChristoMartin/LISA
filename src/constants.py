@@ -21,7 +21,7 @@ hparams = {
   'epsilon': 1e-12,
   'use_nesterov': True,
   'batch_size': 5192,
-  'shuffle_buffer_multiplier': 100,
+  'shuffle_buffer_multiplier': 10,
   'eval_throttle_secs': 800,
   'eval_every_steps': 1000,
   'num_train_epochs': 100000,
@@ -38,7 +38,9 @@ hparams = {
   'random_seed': int(time.time()),
   'optimizer': 'lazyadam',
   'gamma': 0.0,
-  'is_token_based_batching': True
+  'is_token_based_batching': True,
+  'mode': 'train',
+  'special_attention_mode': 'injection'
 }
 
 

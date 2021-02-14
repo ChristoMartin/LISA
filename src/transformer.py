@@ -183,18 +183,44 @@ def discounting_dot_product_attention(q, k, v,
   with tf.variable_scope("discounting_dot_product_attention", values=[q, k, v, discounters]):
     # [batch, num_heads, query_length, memory_length]
     # todo assure the shape of logit and discounter are equal!
+    # q = tf.Print(q, [tf.shape(q)], 'shape of q')
+    # k = tf.Print(k, [tf.shape(k)], 'shape of k')
+    # print('debug <shape of q,k >:', tf.shape(q), tf.shape(k))
     logits = tf.matmul(q, k, transpose_b=True)
-    with tf.control_dependencies([tf.debugging.assert_equal(
-      tf.shape(logits), tf.shape(discounters)
-    )]):
-      logits = logits * discounters
 
-      if bias is not None:
-        logits += bias
+    if bias is not None:
+      logits += bias
+
+
+    if discounters:
+
+      num_attn_to_discount = len(discounters)
+      # todo dangerous! not clear whether the discounter list contain only one or multiple elements.
+      # todo had to account for the multi-element case
+      discounters = tf.stack(discounters, 1)
+      # logits[:, -num_attn_to_discount:] \
+      masked_logits =  tf.where(tf.greater(discounters, 0), logits[:, -num_attn_to_discount:], tf.fill(tf.shape(discounters)
+        , constants.VERY_SMALL))
+      logits = tf.concat([logits[:, :-num_attn_to_discount], masked_logits], axis=1)
+
       weights = tf.nn.softmax(logits, -1)
-      weights_drop = tf.nn.dropout(weights, dropout_rate)
-      # raise NotImplementedError
-      return tf.matmul(weights_drop, v), logits
+      # discounters = tf.Print(discounters, [tf.shape(discounters)], "discounter:")
+      # weights = tf.Print(weights, [tf.shape(weights)], "weights")
+      discounted_weights = weights[:, -num_attn_to_discount:] * discounters
+      rescaling_factors = tf.reduce_sum(discounted_weights, axis=-1)
+      discounted_weights = discounted_weights / tf.expand_dims(rescaling_factors, -1)
+      weights = tf.concat([weights[:, :-num_attn_to_discount], discounted_weights], axis=1)
+    else:
+      weights = tf.nn.softmax(logits, -1)
+    weights_drop = tf.nn.dropout(weights, dropout_rate)
+    # raise NotImplementedError
+    return tf.matmul(weights_drop, v), logits
+    # with tf.control_dependencies([tf.debugging.assert_equal(
+    #   tf.shape(logits), tf.shape(discounters)
+    # )]):
+
+
+
 
 
 
@@ -223,7 +249,8 @@ def multihead_attention(antecedent,
                         head_size,
                         dropout_rate,
                         special_attention,
-                        special_values):
+                        special_values,
+                        special_attention_mode):
   """Multihead scaled-dot-product attention with input/output transformations.
   Args:
     bias: bias Tensor (see attention_bias())
@@ -251,8 +278,15 @@ def multihead_attention(antecedent,
 
     total_output_size = head_size * num_heads
 
-    num_basic_attention_heads = num_heads - len(special_attention)
-    num_basic_value_heads = num_heads - len(special_values)
+    if special_attention_mode == 'injection':
+      num_basic_attention_heads = num_heads - len(special_attention)
+      num_basic_value_heads = num_heads - len(special_values)
+    elif special_attention_mode == 'discounting':
+      num_basic_attention_heads = num_heads
+      num_basic_value_heads = num_heads
+    else:
+      tf.logging.log(tf.logging.FATAL, "Special attention mode {} do not exist".format(special_attention_mode))
+      raise NotImplementedError
 
     total_basic_key_size = num_basic_attention_heads * head_size
     total_basic_value_size = num_basic_value_heads * head_size
@@ -269,7 +303,13 @@ def multihead_attention(antecedent,
 
     # key_depth_per_head = total_key_depth // num_heads
     q *= head_size**-0.5
-    x, attn_weights = dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
+    if special_attention_mode == 'injection':
+      x, attn_weights = dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
+    elif special_attention_mode == 'discounting':
+      x, attn_weights = discounting_dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
+    else:
+      tf.logging.log(tf.logging.FATAL, "Special attention mode {} do not exist".format(special_attention_mode))
+      raise NotImplementedError
     x = combine_heads(x)
     params = tf.get_variable("final_proj", [1, 1, total_output_size, total_output_size])
     x = tf.expand_dims(x, 1)
@@ -279,7 +319,7 @@ def multihead_attention(antecedent,
 
 
 def transformer(inputs, seq_lengths, head_size, num_heads, attn_dropout, ff_dropout, prepost_dropout,
-                relu_hidden_size, special_attention, special_values):
+                relu_hidden_size, special_attention, special_values, special_attention_mode = 'injection'):
 
   # todo deal with special_attention, special_values
 
@@ -289,7 +329,7 @@ def transformer(inputs, seq_lengths, head_size, num_heads, attn_dropout, ff_drop
     with tf.variable_scope("self_attention"):
       x = nn_utils.layer_norm(inputs)
       y, attn_weights = multihead_attention(x, mask, num_heads, head_size, attn_dropout, special_attention,
-                                            special_values)
+                                            special_values, special_attention_mode)
       x = tf.add(x, tf.nn.dropout(y, prepost_dropout))
 
     with tf.variable_scope("ffnn"):

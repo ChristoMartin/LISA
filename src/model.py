@@ -202,7 +202,7 @@ class LISAModel:
             current_input = transformer.transformer(current_input, tokens_to_keep, layer_config['head_dim'],
                                                     layer_config['num_heads'], hparams.attn_dropout,
                                                     hparams.ff_dropout, hparams.prepost_dropout,
-                                                    layer_config['ff_hidden_size'], special_attn, special_values)
+                                                    layer_config['ff_hidden_size'], special_attn, special_values, special_attention_mode = hparams.special_attention_mode)
             # current_input = tf.Print(current_input, [tf.shape(current_input)], "LISA input after transformer")
             if i in self.task_config:
 
