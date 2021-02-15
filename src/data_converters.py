@@ -1,5 +1,5 @@
 import constants
-
+import tensorflow as tf
 
 def lowercase_converter(split_line, idx):
   return [split_line[idx].lower()]
@@ -10,6 +10,8 @@ def parse_roots_self_loop_converter(split_line, idx):
   head = int(split_line[idx[0]])
   id = int(split_line[idx[1]])
   return [str(id if head == 0 else head - 1)]
+
+
 
 
 def strip_conll12_domain_converter(split_line, idx):

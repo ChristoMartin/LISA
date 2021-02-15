@@ -183,29 +183,19 @@ def discounting_dot_product_attention(q, k, v,
   with tf.variable_scope("discounting_dot_product_attention", values=[q, k, v, discounters]):
     # [batch, num_heads, query_length, memory_length]
     # todo assure the shape of logit and discounter are equal!
-    # q = tf.Print(q, [tf.shape(q)], 'shape of q')
-    # k = tf.Print(k, [tf.shape(k)], 'shape of k')
-    # print('debug <shape of q,k >:', tf.shape(q), tf.shape(k))
     logits = tf.matmul(q, k, transpose_b=True)
-
     if bias is not None:
       logits += bias
 
-
     if discounters:
-
       num_attn_to_discount = len(discounters)
       # todo dangerous! not clear whether the discounter list contain only one or multiple elements.
       # todo had to account for the multi-element case
       discounters = tf.stack(discounters, 1)
-      # logits[:, -num_attn_to_discount:] \
       masked_logits =  tf.where(tf.greater(discounters, 0), logits[:, -num_attn_to_discount:], tf.fill(tf.shape(discounters)
         , constants.VERY_SMALL))
       logits = tf.concat([logits[:, :-num_attn_to_discount], masked_logits], axis=1)
-
       weights = tf.nn.softmax(logits, -1)
-      # discounters = tf.Print(discounters, [tf.shape(discounters)], "discounter:")
-      # weights = tf.Print(weights, [tf.shape(weights)], "weights")
       discounted_weights = weights[:, -num_attn_to_discount:] * discounters
       rescaling_factors = tf.reduce_sum(discounted_weights, axis=-1)
       discounted_weights = discounted_weights / tf.expand_dims(rescaling_factors, -1)
@@ -215,12 +205,41 @@ def discounting_dot_product_attention(q, k, v,
     weights_drop = tf.nn.dropout(weights, dropout_rate)
     # raise NotImplementedError
     return tf.matmul(weights_drop, v), logits
-    # with tf.control_dependencies([tf.debugging.assert_equal(
-    #   tf.shape(logits), tf.shape(discounters)
-    # )]):
 
+def okazaki_discounting_dot_product_attention(q, k, v,
+                          bias,
+                          discounters,
+                          dropout_rate=1.0):
+  """dot-product attention.
+  This version is presented
+  Args:
+    q: a Tensor with shape [batch, heads, length_q, depth_k]
+    k: a Tensor with shape [batch, heads, length_kv, depth_k]
+    v: a Tensor with shape [batch, heads, length_kv, depth_v]
+    discounters: a Tensor with shape [batch, heads, length_q, length_kv]
+    bias: bias Tensor (see attention_bias())
+    dropout_rate: a floating point number
+    name: an optional string
+  Returns:
+    A Tensor.
+  """
+  with tf.variable_scope("discounting_dot_product_attention", values=[q, k, v, discounters]):
+    # [batch, num_heads, query_length, memory_length]
+    # todo assure the shape of logit and discounter are equal!
+    logits = tf.matmul(q, k, transpose_b=True)
+    if bias is not None:
+      logits += bias
 
-
+    if discounters:
+      num_attn_to_discount = len(discounters)
+      discounters = tf.stack(discounters, 1)
+      logits = tf.concat([logits[:, :-num_attn_to_discount], logits[:, :-num_attn_to_discount]*discounters], axis=1)
+      weights = tf.nn.softmax(logits, -1)
+    else:
+      weights = tf.nn.softmax(logits, -1)
+    weights_drop = tf.nn.dropout(weights, dropout_rate)
+    # raise NotImplementedError
+    return tf.matmul(weights_drop, v), logits
 
 
 
@@ -307,6 +326,8 @@ def multihead_attention(antecedent,
       x, attn_weights = dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
     elif special_attention_mode == 'discounting':
       x, attn_weights = discounting_dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
+    elif special_attention_mode == 'okazaki_discounting':
+      x, attn_weights = okazaki_discounting_dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
     else:
       tf.logging.log(tf.logging.FATAL, "Special attention mode {} do not exist".format(special_attention_mode))
       raise NotImplementedError
