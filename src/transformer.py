@@ -223,7 +223,7 @@ def okazaki_discounting_dot_product_attention(q, k, v,
   Returns:
     A Tensor.
   """
-  with tf.variable_scope("discounting_dot_product_attention", values=[q, k, v, discounters]):
+  with tf.variable_scope("okazaki_discounting_dot_product_attention", values=[q, k, v, discounters]):
     # [batch, num_heads, query_length, memory_length]
     # todo assure the shape of logit and discounter are equal!
     logits = tf.matmul(q, k, transpose_b=True)
@@ -233,7 +233,7 @@ def okazaki_discounting_dot_product_attention(q, k, v,
     if discounters:
       num_attn_to_discount = len(discounters)
       discounters = tf.stack(discounters, 1)
-      logits = tf.concat([logits[:, :-num_attn_to_discount], logits[:, :-num_attn_to_discount]*discounters], axis=1)
+      logits = tf.concat([logits[:, :-num_attn_to_discount], logits[:, -num_attn_to_discount:]*discounters], axis=1)
       weights = tf.nn.softmax(logits, -1)
     else:
       weights = tf.nn.softmax(logits, -1)
@@ -300,7 +300,7 @@ def multihead_attention(antecedent,
     if special_attention_mode == 'injection':
       num_basic_attention_heads = num_heads - len(special_attention)
       num_basic_value_heads = num_heads - len(special_values)
-    elif special_attention_mode == 'discounting':
+    elif special_attention_mode == 'discounting' or special_attention_mode =='okazaki_discounting':
       num_basic_attention_heads = num_heads
       num_basic_value_heads = num_heads
     else:
