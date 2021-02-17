@@ -1,0 +1,7 @@
+{
+  "joint_pos_predicate": 2,
+  "local_aggregation_attention_multiheads": [1, 2],
+  "local_dep_aggregation_attention_multiheads": [3, 4],
+  "dep_aggregation_attention_multiheads": [5, 6],
+  "srl": 9
+}

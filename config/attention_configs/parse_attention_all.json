@@ -1,0 +1,224 @@
+{
+  "parse_attention_singlehead": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "copy_from_predicted",
+        "length": 1,
+        "params": {
+          "train_attention_to_copy": {
+            "label": "parse_gold"
+          },
+          "eval_attention_to_copy": {
+            "layer": "parse_head",
+            "output": "scores"
+          }
+        }
+      }
+    }
+  },
+  "parse_attention_multiheads": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "copy_from_predicted",
+        "length": 5,
+        "params": {
+          "train_attention_to_copy": {
+            "label": "parse_gold"
+          },
+          "eval_attention_to_copy": {
+            "layer": "parse_head",
+            "output": "scores"
+          }
+        }
+      }
+    }
+  },
+  "local_dep_aggregation_attention_singlehead": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          },
+          "eval_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          }
+        }
+      }
+    }
+  },
+  "local_aggregation_attention_singlehead": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          },
+          "eval_attention_aggregation": {
+            "label": {
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          }
+        }
+      }
+    }
+  },
+  "dep_aggregation_attention_singlehead": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "local_dep_aggregation_attention_multiheads": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "length": 5,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          },
+          "eval_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          }
+        }
+      }
+    }
+  },
+  "local_aggregation_attention_multiheads": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "length": 5,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          },
+          "eval_attention_aggregation": {
+            "label": {
+              "local_window_balanced_1": "local_window_balanced",
+              "local_window_balanced_2": "local_window_balanced",
+              "local_window_rtilted_1": "local_window_rtilted",
+              "local_window_rtilted_2": "local_window_rtilted",
+              "local_window_ltilted_1": "local_window_ltilted",
+              "local_window_ltilted_2": "local_window_ltilted"
+            }
+          }
+        }
+      }
+    }
+  },
+  "dep_aggregation_attention_multiheads": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "length": 5,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "label": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  }
+}
