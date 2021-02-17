@@ -187,9 +187,17 @@ class LISAModel:
               if 'attention_fns' in this_layer_attn_config:
                 for attn_fn, attn_fn_map in this_layer_attn_config['attention_fns'].items():
                   print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
-                  attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
-                  this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
-                  special_attn.append(this_special_attn)
+                  if 'length' in attn_fn_map.keys():
+                    for idx in range(attn_fn_map['length']): # To make sure that the three special attention is different
+                      with tf.variable_scope('{}_{}'.format(attn_fn_map['name'], idx)):
+                        attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
+                        this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
+                      special_attn.append(this_special_attn)
+                  else:
+                    with tf.variable_scope('{}'.format(attn_fn_map['name'])):
+                      attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
+                      this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
+                    special_attn.append(this_special_attn)
                 print("debug <layer_{} special attention>: ".format(i), special_attn )
 
               if 'value_fns' in this_layer_attn_config:
@@ -202,7 +210,7 @@ class LISAModel:
             current_input = transformer.transformer(current_input, tokens_to_keep, layer_config['head_dim'],
                                                     layer_config['num_heads'], hparams.attn_dropout,
                                                     hparams.ff_dropout, hparams.prepost_dropout,
-                                                    layer_config['ff_hidden_size'], special_attn, special_values)
+                                                    layer_config['ff_hidden_size'], special_attn, special_values, special_attention_mode = hparams.special_attention_mode)
             # current_input = tf.Print(current_input, [tf.shape(current_input)], "LISA input after transformer")
             if i in self.task_config:
 

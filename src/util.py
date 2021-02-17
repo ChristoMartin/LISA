@@ -115,14 +115,25 @@ def combine_attn_maps(layer_config, attention_config, task_config):
   layer_attention_config = OrderedDict({})
   for task_or_attn_name, layer in layer_config.items():
     # print("debug <adding task config {} to {}>".format(task_or_attn_name, layer))
-    if task_or_attn_name in attention_config :
-      layer_attention_config[layer] = attention_config[task_or_attn_name]
-    elif task_or_attn_name in task_config:
-      if layer not in layer_task_config:
-        layer_task_config[layer] = OrderedDict({})
+    if isinstance(layer, list):
+      for l in layer:
+        if task_or_attn_name in attention_config:
+          layer_attention_config[l] = attention_config[task_or_attn_name]
+        elif task_or_attn_name in task_config:
+          fatal_error('list type of layer indicator should only appear in attention config')
+        else:
+          fatal_error('No task or attention config "%s"' % task_or_attn_name)
+    elif isinstance(layer, int):
+      if task_or_attn_name in attention_config :
+        layer_attention_config[layer] = attention_config[task_or_attn_name]
+      elif task_or_attn_name in task_config:
+        if layer not in layer_task_config:
+          layer_task_config[layer] = OrderedDict({})
 
-      layer_task_config[layer][task_or_attn_name] = task_config[task_or_attn_name]
+        layer_task_config[layer][task_or_attn_name] = task_config[task_or_attn_name]
+      else:
+        fatal_error('No task or attention config "%s"' % task_or_attn_name)
     else:
-      fatal_error('No task or attention config "%s"' % task_or_attn_name)
+      fatal_error('type of layer indicator is not expected')
   # if 'parsed_label'
   return layer_task_config, layer_attention_config

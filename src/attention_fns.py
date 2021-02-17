@@ -1,6 +1,7 @@
 import tensorflow as tf
 import constants
 import nn_utils
+import transformation_fn
 
 
 def copy_from_predicted(mode, train_attention_to_copy, eval_attention_to_copy):
@@ -19,15 +20,15 @@ def copy_from_predicted(mode, train_attention_to_copy, eval_attention_to_copy):
 def linear_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
   #suppose attention_to_aggregated is in list
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
-  attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
-                                 off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
+  # attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
+  #                                off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
   attention_to_aggregated = nn_utils.graph_aggregation_softmax_done(attention_to_aggregated)
   return tf.cast(attention_to_aggregated, tf.float32)
 def mean_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
   #suppose attention_to_aggregated is in list
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
-  attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
-                                 off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
+  # attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
+  #                                off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
   attention_to_aggregated = nn_utils.graph_mean_aggregation(attention_to_aggregated)
   return tf.cast(attention_to_aggregated, tf.float32)
 
@@ -54,9 +55,29 @@ def get_params(mode, attn_map, train_outputs, features, labels):
   for param_name, param_values in params_map.items():
     # if this is a map-type param, do map lookups and pass those through
     if param_name == "train_attention_aggregation":
-      params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
+      if isinstance(param_values['label'], dict):
+        attn_constraints = []
+        for src, transformation_name in param_values['label'].items():
+          attn_map = transformation_fn.dispatch(transformation_name)(**transformation_fn.get_params(features[src], transformation_name, src))
+          attn_constraints += [attn_map]
+        params[param_name] = tf.stack(attn_constraints, axis=0)
+      elif isinstance(param_values['label'], list):
+        params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
+      else:
+        print('Undefined attention source format')
+        raise NotImplementedError
     elif param_name == "eval_attention_aggregation":
-      params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
+      if isinstance(param_values['label'], dict):
+        attn_constraints = []
+        for src, transformation_name in param_values['label'].items():
+          attn_map = transformation_fn.dispatch(transformation_name)(**transformation_fn.get_params(features[src], transformation_name, src))
+          attn_constraints += [attn_map]
+        params[param_name] = tf.stack(attn_constraints, axis=0)
+      elif isinstance(param_values['label'], list):
+        params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
+      else:
+        print('Undefined attention source format')
+        raise NotImplementedError
     elif 'label' in param_values:
       params[param_name] = labels[param_values['label']]
     elif 'feature' in param_values:
