@@ -120,7 +120,7 @@ else:
 
 def dev_input_fn():
   return train_utils.get_input_fn(vocab, data_config, dev_filenames, hparams.batch_size, num_epochs=1, shuffle=False,
-                                  embedding_files=embedding_files)
+                                  embedding_files=embedding_files, is_token_based_batching = hparams.is_token_based_batching)
 
 
 def eval_fn(input_op, sess):
@@ -218,7 +218,7 @@ with tf.Session() as sess:
   for test_file in test_filenames:
     def test_input_fn():
       return train_utils.get_input_fn(vocab, data_config, [test_file], hparams.batch_size, num_epochs=1, shuffle=False,
-                                      embedding_files=embedding_files)
+                                      embedding_files=embedding_files, is_token_based_batching = hparams.is_token_based_batching)
     test_input_ops[test_file] = test_input_fn()
 
   sess.run(tf.tables_initializer())

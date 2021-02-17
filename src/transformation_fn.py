@@ -23,16 +23,21 @@ def local_window_balanced(input, strip_width):
   strip_width = int(strip_width)
   # tf.roll()
   diag = tf.reduce_sum([roll(tf.linalg.diag(tf.where(tf.not_equal(input, constants.PAD_VALUE), tf.ones_like(input), tf.zeros_like(input))), shift=k) for k in range(-strip_width, strip_width+1)], axis=0)
+  diag = tf.where(tf.greater(diag, 0), constants.VERY_LARGE * tf.ones_like(diag),
+                  constants.VERY_SMALL * tf.ones_like(diag))
   return tf.cast(diag, tf.float32)
 
 def local_window_rtilted(input, strip_width):
   strip_width = int(strip_width)
   diag = tf.reduce_sum([roll(tf.linalg.diag(tf.where(tf.not_equal(input, constants.PAD_VALUE), tf.ones_like(input), tf.zeros_like(input))), shift=k) for k in range(-(strip_width-1), strip_width+1)], axis=0)
+  diag = tf.where(tf.greater(diag, 0), constants.VERY_LARGE * tf.ones_like(diag),
+                  constants.VERY_SMALL * tf.ones_like(diag))
   return tf.cast(diag, tf.float32)
 
 def local_window_ltilted(input, strip_width):
   strip_width = int(strip_width)
   diag = tf.reduce_sum([roll(tf.linalg.diag(tf.where(tf.not_equal(input, constants.PAD_VALUE), tf.ones_like(input), tf.zeros_like(input))), shift=k) for k in range(-strip_width, strip_width)], axis=0)
+  diag = tf.where(tf.greater(diag, 0), constants.VERY_LARGE * tf.ones_like(diag), constants.VERY_SMALL * tf.ones_like(diag))
   return tf.cast(diag, tf.float32)
 
 
