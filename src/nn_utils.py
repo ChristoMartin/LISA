@@ -15,7 +15,7 @@ def graph_aggregation_softmax_done(dep_graph_list):
   with tf.variable_scope("aggregation_weight"):
     weight = tf.get_variable("weight", shape=num_dep_grap)
     aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(tf.nn.softmax(weight), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
-  return aggregated_graph
+    return aggregated_graph, tf.nn.softmax(weight)
 
 def graph_mean_aggregation(dep_graph_list):
   with tf.variable_scope("aggregation_weight"):

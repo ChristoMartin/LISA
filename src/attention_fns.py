@@ -15,22 +15,28 @@ def copy_from_predicted(mode, train_attention_to_copy, eval_attention_to_copy):
     attention_to_copy = tf.one_hot(attention_to_copy, tf.shape(attention_to_copy)[-1], on_value=constants.VERY_LARGE,
                                    off_value=constants.VERY_SMALL)
 
-  return tf.cast(tf.nn.softmax(attention_to_copy, dim=-1), tf.float32)
+  return tf.cast(tf.nn.softmax(attention_to_copy, dim=-1), tf.float32), None
 
 def linear_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
   #suppose attention_to_aggregated is in list
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
   # attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
   #                                off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
-  attention_to_aggregated = nn_utils.graph_aggregation_softmax_done(attention_to_aggregated)
-  return tf.cast(attention_to_aggregated, tf.float32)
+  attention_to_aggregated, weight = nn_utils.graph_aggregation_softmax_done(attention_to_aggregated)
+  return tf.cast(attention_to_aggregated, tf.float32), weight
 def mean_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
   #suppose attention_to_aggregated is in list
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
   # attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
   #                                off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
   attention_to_aggregated = nn_utils.graph_mean_aggregation(attention_to_aggregated)
-  return tf.cast(attention_to_aggregated, tf.float32)
+  return tf.cast(attention_to_aggregated, tf.float32), None
+
+def linear_aggregation_by_mlp(mode, train_attention_aggregation, eval_attention_aggregation, v):
+  # v is the sentence-level feature, can be either mean(we), mean(latest self-attention layer output)...
+
+
+  raise NotImplementedError
 
 
 dispatcher = {

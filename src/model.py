@@ -245,10 +245,14 @@ class LISAModel:
                 for attn_fn, attn_fn_map in this_layer_attn_config['attention_fns'].items():
                   print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
                   if 'length' in attn_fn_map.keys():
-                    for idx in range(attn_fn_map['length']): # To make sure that the three special attention is different
+                    for idx in range(attn_fn_map['length']): # To make sure that the three special attentions are different
                       with tf.variable_scope('{}_{}'.format(attn_fn_map['name'], idx)):
                         attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
-                        this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
+                        this_special_attn, special_attn_weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
+                      # todo patches everywhere!
+                      if special_attn is not None and hparams.output_attention_weight:
+                        for i in range(special_attn_weight.get_shape()[0]):
+                          items_to_log["{}_{}_weight_{}".format(attn_fn_map['name'], idx, i)] = special_attn_weight[i]
                       special_attn.append(this_special_attn)
                   else:
                     with tf.variable_scope('{}'.format(attn_fn_map['name'])):
@@ -384,7 +388,7 @@ class LISAModel:
 
 
         flat_predictions = {"%s_%s" % (k1, k2): v2 for k1, v1 in predictions.items() for k2, v2 in v1.items()}
-
+        print("debug <flat predictions>:", flat_predictions)
         export_outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                           tf.estimator.export.PredictOutput(flat_predictions)}
 
