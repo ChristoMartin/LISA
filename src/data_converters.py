@@ -12,7 +12,9 @@ def parse_roots_self_loop_converter(split_line, idx):
   return [str(id if head == 0 else head - 1)]
 
 
-
+def generate_token_loc_id(split_line, idx):
+  #get unique location id by token_id * sent_id
+  return [int(split_line[idx[0]])*int(split_line[idx[1]])]
 
 def strip_conll12_domain_converter(split_line, idx):
   return [split_line[idx].split("/")[0]]

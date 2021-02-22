@@ -6,9 +6,11 @@ from data_generator import conll_data_generator
 from t2t_data_reader import input_fn, token_based_batching
 
 
-def map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names):
+def map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names, cached_embedding = None):
   def _mapper(d):
     intmapped = []
+    print("debug <feature_label_names>: ", feature_label_names)
+    print("debug <data_config>:", data_config)
     for i, datum_name in enumerate(feature_label_names):
       if 'vocab' in data_config[datum_name]:
         # todo this is a little clumsy -- is there a better way to pass this info through?
@@ -34,13 +36,14 @@ def map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names):
     # ret = tf.Print(ret, [ret, tf.shape(ret)], 'str2int conversion')
     # this is where the order of features/labels in input gets defined
     # todo: can i have these come out of the lookup as int32?
-    return ret#tf.cast(tf.concat(intmapped, axis=-1), tf.int32)
+    # return ret, tf.zeros([2,1])
+    return ret #tf.cast(tf.concat(intmapped, axis=-1), tf.int32)
 
   return _mapper
 
 
 def get_data_iterator(data_filenames, data_config, vocab_lookup_ops, batch_size, num_epochs, shuffle,
-                      shuffle_buffer_multiplier, is_token_based_batching):
+                      shuffle_buffer_multiplier, is_token_based_batching, cached_embedding=None):
 
 
 
@@ -59,7 +62,7 @@ def get_data_iterator(data_filenames, data_config, vocab_lookup_ops, batch_size,
                                              output_shapes=[None, None], output_types=tf.string)
 
     # intmap the dataset
-    dataset = dataset.map(map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names), num_parallel_calls=8)
+    dataset = dataset.map(map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names, None), num_parallel_calls=8)
     # dataset = dataset.map(map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names))
 
     dataset = dataset.cache()
@@ -73,7 +76,8 @@ def get_data_iterator(data_filenames, data_config, vocab_lookup_ops, batch_size,
             num_epochs = num_epochs,
             batchsize=batch_size,
             min_length=0,
-            batch_shuffle_size=batch_size*shuffle_buffer_multiplier)
+            batch_shuffle_size=batch_size*shuffle_buffer_multiplier,
+            pad_value = constants.PAD_VALUE)
     else:
       bucket_boundaries = constants.DEFAULT_BUCKET_BOUNDARIES
       bucket_batch_sizes = [batch_size] * (len(bucket_boundaries) + 1)

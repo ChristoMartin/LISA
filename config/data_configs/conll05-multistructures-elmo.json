@@ -1,0 +1,142 @@
+{
+  "id": {
+    "conll_idx": 2
+  },
+  "sent_id": {
+    "conll_idx": 1,
+    "label": true
+  },
+  "word": {
+    "conll_idx": 3,
+    "feature": true,
+    "vocab": "word",
+    "oov": false,
+    "updatable": true
+  },
+  "word_type": {
+    "conll_idx": 3,
+    "feature": true,
+    "vocab": "embeddings/glove.6B.100d.txt",
+    "converter":  {
+      "name": "lowercase"
+    },
+    "oov": true
+  },
+  "word_elmo": {
+    "conll_idx": 17,
+    "feature": true,
+    "elmo": true
+  },
+  "gold_pos": {
+    "conll_idx": 4,
+    "label": true,
+    "vocab": "gold_pos"
+  },
+  "auto_pos": {
+    "conll_idx": 5,
+    "vocab": "gold_pos"
+  },
+  "parse_gold": {
+    "conll_idx": [6, 2],
+    "label": true,
+    "converter":  {
+      "name": "parse_roots_self_loop"
+    }
+  },
+  "parse_biaffine": {
+    "conll_idx": [7, 2],
+    "feature": true,
+    "converter":  {
+      "name": "parse_roots_self_loop"
+    }
+  },
+  "parse_crf": {
+    "conll_idx": [8, 2],
+    "feature": true,
+    "converter":  {
+      "name": "parse_roots_self_loop"
+    }
+  },
+  "parse_crf2o": {
+    "conll_idx": [9, 2],
+    "feature": true,
+    "converter":  {
+      "name": "parse_roots_self_loop"
+    }
+  },
+  "parse_crfnp": {
+    "conll_idx": [10, 2],
+    "feature": true,
+    "converter":  {
+      "name": "parse_roots_self_loop"
+    }
+  },
+  "parse_label": {
+    "conll_idx": 11,
+    "label": true,
+    "vocab": "parse_label"
+  },
+  "domain": {
+    "conll_idx": 0,
+    "vocab": "domain",
+    "converter": {
+      "name": "strip_conll12_domain"
+    }
+  },
+  "predicate": {
+    "conll_idx": 14,
+    "label": true,
+    "vocab": "predicate",
+    "converter": {
+      "name": "conll12_binary_predicates"
+    }
+  },
+  "joint_pos_predicate": {
+    "conll_idx": [4, 13],
+    "label": true,
+    "vocab": "joint_pos_predicate",
+    "converter": {
+      "name": "joint_converter",
+      "params": {
+        "component_converters": ["default_converter", "conll12_binary_predicates"]
+      }
+    },
+    "label_components": [
+      "gold_pos",
+      "predicate"
+    ]
+  },
+  "local_window_balanced_1": {
+    "conll_idx": 6,
+    "feature": true
+  },
+  "local_window_balanced_2": {
+    "conll_idx": 6,
+    "feature": true
+  },
+  "local_window_ltilted_1": {
+    "conll_idx": 6,
+    "feature": true
+  },
+  "local_window_ltilted_2": {
+    "conll_idx": 6,
+    "feature": true
+  },
+  "local_window_rtilted_1": {
+    "conll_idx": 6,
+    "feature": true
+  },
+  "local_window_rtilted_2": {
+    "conll_idx": 6,
+    "feature": true
+  },
+  "srl": {
+    "conll_idx": [19, -1],
+    "type": "range",
+    "label": true,
+    "vocab": "srl",
+    "converter": {
+      "name": "idx_range_converter"
+    }
+  }
+}
