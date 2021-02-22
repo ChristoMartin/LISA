@@ -37,7 +37,7 @@
      "pretrained_embeddings": "embeddings/glove.6B.100d.txt"
    }
  },
- "inputs": [
-   "word_type"
- ]
+ "inputs": {
+   "word_type": "embeddings"
+ }
 }

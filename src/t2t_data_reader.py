@@ -26,6 +26,8 @@ import six
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
+import constants
+
 
 def cast_ints_to_int32(features):
   f = {}
@@ -288,6 +290,7 @@ def token_based_batching(dataset,
             min_length,
             batch_shuffle_size,
             drop_long_sequence=True,
+            pad_value = constants.PAD_VALUE
             ):
   # is_training = mode == tf.estimator.ModeKeys.TRAIN
   num_threads = 1
@@ -331,7 +334,7 @@ def token_based_batching(dataset,
     dataset = dataset.apply(
           tf.data.experimental.bucket_by_sequence_length(
               lambda d: tf.shape(d)[0], cur_batching_scheme["boundaries"],
-              cur_batching_scheme["batch_sizes"]))
+              cur_batching_scheme["batch_sizes"], padding_values=pad_value))
 
     # if not is_training:
     #   batch_multiple = num_shards

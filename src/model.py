@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow.estimator import ModeKeys
 import constants
@@ -27,6 +28,18 @@ class LISAModel:
     self.feature_idx_map = feature_idx_map
     self.label_idx_map = label_idx_map
     self.vocab = vocab
+
+    if hparams.cwr != 'None':
+      cwr_embeddings = []
+      for embedding_name, embedding_map in self.model_config['cached_cwr'].items():
+        embedding_dim = embedding_map['embedding_dim']
+        input_cached_embeddings = embedding_map['cached_embeddings']
+        embedding_table = self.get_cached_embedding_table(embedding_name, embedding_dim,
+                                                          pretrained_fname=input_cached_embeddings)
+        cwr_embeddings.append(embedding_table)
+        tf.logging.log(tf.logging.INFO, "Created cached embeddings for '%s'." % embedding_name)
+      self.cwr_embedding = np.concatenate(cwr_embeddings, axis=0)
+
     # print("debug <LISA task config>: ", task_config)
 
   def hparams(self, mode):
@@ -61,6 +74,11 @@ class LISAModel:
 
       return embedding_table
 
+  def get_cached_embedding_table(self, name, embedding_dim, pretrained_fname=None, num_embeddings=None):
+    with tf.variable_scope("%s_cached_embeddings" % name):
+      pretrained_embeddings = util.load_cached_pretrained_embedding(pretrained_fname)
+      return pretrained_embeddings
+
   def model_fn(self, features, mode):
 
     # todo can estimators handle dropout for us or do we need to do it on our own?
@@ -78,6 +96,7 @@ class LISAModel:
 
       # todo this assumes that word_type is always passed in
       words = feats['word_type']
+      print("debug <input features>:", features)
 
       # for masking out padding tokens
       tokens_to_keep = tf.where(tf.equal(words, constants.PAD_VALUE), tf.zeros([batch_size, batch_seq_len]),
@@ -87,6 +106,7 @@ class LISAModel:
       feats = {f: tf.multiply(tf.cast(tokens_to_keep, tf.int32), v) for f, v in feats.items()}
       # feats = {f: tf.Print(feats[f], [feats[f]]) for f in feats.keys()}
       print("<debug features>: ",feats)
+      print("debug <model_config>:", self.model_config)
 
       # Extract named labels from monolithic "features" input, and mask them
       # todo fix masking -- is it even necessary?
@@ -139,18 +159,55 @@ class LISAModel:
 
         tf.logging.log(tf.logging.INFO, "Created embeddings for '%s'." % embedding_name)
 
+
+
       print("debug <registered lookup>: ", embeddings)
       # tf.Print("marker", "Start processing ")
       # Set up model inputs
       inputs_list = []
-      for input_name in self.model_config['inputs']:
-        print("debug <actual inputs>:", input_name)
-        input_values = feats[input_name]
-        # input_values = tf.Print(input_values, ["input value under {}".format(input_name), input_values, tf.shape(input_values)])
-        input_embedding_lookup = tf.nn.embedding_lookup(embeddings[input_name], input_values)
-        # input_embedding_lookup = tf.Print(input_embedding_lookup, ["input embedding under {}".format(input_name), input_embedding_lookup])
-        inputs_list.append(input_embedding_lookup)
-        tf.logging.log(tf.logging.INFO, "Added %s to inputs list." % input_name)
+      with tf.device("CPU:0"):
+        if hparams.cwr != "None":
+          # Initialize the embedding table with np array
+          print("debug <elmo embedding table size>", self.cwr_embedding.shape)
+          # cached_cwr_embeddings_placeholder_init = tf.constant_initializer(self.cwr_embedding)
+          # cached_cwr_embeddings_placeholder = tf.placeholder(dtype=tf.float32, shape=self.cwr_embedding.shape)
+          cached_cwr_embeddings = tf.get_variable("cwr_embedding", shape=self.cwr_embedding.shape, trainable=False)
+          print("debug <cached_cwr_embedding size>", cached_cwr_embeddings)
+            # tf.Variable(cached_cwr_embeddings_placeholder_init(shape=self.cwr_embedding.shape, dtype=tf.float32),
+            #                                   trainable=False, name="cached_cwr_embeddings")
+          # embedding_init = cached_cwr_embeddings.assign(cached_cwr_embeddings_placeholder)
+          def init_fn(scaffold, sess):
+            sess.run(cached_cwr_embeddings.initializer, {cached_cwr_embeddings.initial_value: self.cwr_embedding})
+          scaffold = tf.train.Scaffold(init_fn=init_fn)
+
+
+        for input_name, input_transformation_name in self.model_config['inputs'].items():
+          print("debug <actual inputs>:", input_name, input_transformation_name)
+          input_values = feats[input_name]
+          # input_values = tf.Print(input_values, ["input value under {}".format(input_name), input_values, tf.shape(input_values)])
+          if input_transformation_name == "cached_embeddings":
+            # input_values = tf.Print(input_values, [input_values], "input values to retrieve elmo embedding")
+            input_embedding_lookup = tf.nn.embedding_lookup(cached_cwr_embeddings, input_values)
+            with tf.variable_scope("cwr_assembly"):
+              num_layers = 3#input_embedding_lookup.get_shape()[2]
+              # batch_size =  pe()[0]
+              # batch_length = input_values.get_shape()[1]
+              weight = tf.get_variable("cwr_weight", shape=[num_layers], initializer=tf.random_normal_initializer(), trainable=True)
+              scale = tf.get_variable("cwr_scale", shape=[], initializer=tf.random_normal_initializer(), trainable=True)
+              # suppose it's (b, seq_len, layers, hiddens)
+              # weight = tf.Print(weight, [weight, scale], "Elmo assembly parameter")
+              input_embedding_lookup = scale * tf.math.reduce_sum(
+              tf.split(input_embedding_lookup, axis=-1, num_or_size_splits=num_layers) * tf.reshape(tf.nn.softmax(weight), shape=[num_layers, 1, 1, 1]), axis=0)
+              # input_embedding_lookup = tf.Print(input_embedding_lookup, [input_embedding_lookup], "input embeddings from elmo")
+            # raise NotImplementedError
+          elif input_transformation_name == "embeddings":
+            input_embedding_lookup = tf.nn.embedding_lookup(embeddings[input_name], input_values)
+          else:
+            print("unknown input transformation")
+            raise NotImplementedError
+          # input_embedding_lookup = tf.Print(input_embedding_lookup, ["input embedding under {}".format(input_name), input_embedding_lookup])
+          inputs_list.append(input_embedding_lookup)
+          tf.logging.log(tf.logging.INFO, "Added %s to inputs list." % input_name)
       # TODO a mere workaround with one element concat
       current_input = tf.concat(inputs_list, axis=-1)
       current_input = tf.nn.dropout(current_input, hparams.input_dropout)
@@ -333,11 +390,15 @@ class LISAModel:
 
         tf.logging.log(tf.logging.INFO,
                        "Created model with %d trainable parameters" % tf_utils.get_num_trainable_parameters())
+        # if hparams.cwr!= 'None':
+        #   with tf.Session() as sess:
+        #     sess.run(tf.global_variables_initializer(), feed_dict={cached_cwr_embeddings_placeholder: self.cwr_embedding})
+
 
         if hparams.mode == 'train':
           return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
-                                          training_hooks=[logging_hook, summary_hook], export_outputs=export_outputs)
+                                          training_hooks=[logging_hook, summary_hook], export_outputs=export_outputs, scaffold=scaffold if hparams.cwr!='None' else None)
         else:
           return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
-                                            export_outputs=export_outputs)
+                                            export_outputs=export_outputs, scaffold=scaffold if hparams.cwr!='None' else None)
 

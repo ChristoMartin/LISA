@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+import h5py
 import numpy as np
 import tensorflow as tf
 import os
@@ -60,6 +61,22 @@ def load_pretrained_embeddings(pretrained_fname):
   pretrained_embeddings = np.array(pretrained_embeddings)
   pretrained_embeddings /= np.std(pretrained_embeddings)
   return pretrained_embeddings
+
+def load_cached_pretrained_embedding(pretrained_fname):
+  table = []
+  cnt = 0
+  with h5py.File(pretrained_fname, 'r') as fin:
+    for idx in range(len(fin)):
+      sentence = fin[str(idx)]
+    # for idx, sentence in fin.items():
+    #   print(idx)
+      assert str(idx) == str(cnt)
+      token_table = np.concatenate([sentence[idx] for idx in range(3)], -1) #default with 3 layers#tf.reshape(sentence, [3, 2])#np.transpose(sentence, (1, 0, 2))
+      # print(token_table)
+      table.append(token_table)
+      # print(len(table))
+      cnt+=1
+  return np.concatenate(table, axis=0)
 
 
 def get_token_take_mask(task, task_config, outputs):

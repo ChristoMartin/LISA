@@ -40,7 +40,8 @@ hparams = {
   'gamma': 0.0,
   'is_token_based_batching': True,
   'mode': 'train',
-  'special_attention_mode': 'injection'
+  'special_attention_mode': 'injection',
+  'cwr': 'None'
 }
 
 
