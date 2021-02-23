@@ -11,6 +11,7 @@ import numpy as np
 import sys
 import util
 from others import EvalResultsExporter
+from Exporter import BestCheckpointCopier
 
 arg_parser = argparse.ArgumentParser(description='')
 arg_parser.add_argument('--train_files', required=True,
@@ -148,10 +149,18 @@ save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.be
                                                assets_extra=export_assets,
                                                exports_to_keep=args.keep_k_best_models)
 
+best_copier = BestCheckpointCopier(
+   name='best_checkpoint', # directory within model directory to copy checkpoints to
+   checkpoints_to_keep=args.keep_k_best_models, # number of checkpoints to keep
+   score_metric=args.best_eval_key, # metric to use to determine "best"
+   compare_fn=lambda x,y: x.score>y.score, # comparison function used to determine "best" checkpoint (x is the current checkpoint; y is the previously copied checkpoint with the highest/worst score)
+   sort_key_fn=lambda x: x.score,
+   sort_reverse=True ) # sort#keep larger checkpoints
+
 # Train forever until killed
 train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, hooks=[srl_early_stop_hook] if args.early_stopping else None)
 eval_spec = tf.estimator.EvalSpec(input_fn=dev_input_fn, throttle_secs=hparams.eval_throttle_secs,
-                                  exporters=[save_best_exporter, EvalResultsExporter('eval_results')])
+                                  exporters=[save_best_exporter, best_copier])
 
 # Run training
 

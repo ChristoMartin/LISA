@@ -115,7 +115,7 @@ estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=args.save_
 
 def dev_input_fn():
   return train_utils.get_input_fn(vocab, data_config, dev_filenames, hparams.batch_size, num_epochs=1, shuffle=False,
-                                  embedding_files=embedding_files)
+                                  embedding_files=embedding_files, is_token_based_batching = hparams.is_token_based_batching)
 
 
 tf.logging.log(tf.logging.INFO, "Evaluating on dev files: %s" % str(dev_filenames))

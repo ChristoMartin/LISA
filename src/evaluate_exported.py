@@ -77,6 +77,10 @@ test_filenames = args.test_files.split(',') if args.test_files else []
 vocab = Vocab(data_config, args.save_dir)
 vocab.update(test_filenames)
 
+hparams.mode = 'predict'
+print("debug <hparams>:", hparams)
+
+
 embedding_files = [embeddings_map['pretrained_embeddings'] for embeddings_map in model_config['embeddings'].values()
                    if 'pretrained_embeddings' in embeddings_map]
 
@@ -103,19 +107,27 @@ feature_idx_map, label_idx_map = util.load_feat_label_idx_maps(data_config)
 transition_params = util.load_transition_params(layer_task_config, vocab)
 
 def constrcut_predictor(path):
+    # warm_start_from=tf.estimator.WarmStartSettings(
+    #     ckpt_to_initialize_from=str(path),
+    #    vars_to_warm_start=".*" # everything in TRAINABLE_VARIABLES - excluding optimiser params
+    #     # vars_to_warm_start=[".*"], # everything in GLOBAL_VARIABLES - including optimiser params
+    # )
     model = LISAModel(hparams, model_config, layer_task_config, layer_attention_config, feature_idx_map, label_idx_map,
                       vocab)
     # ws = WarmStartSettings(ckpt_to_initialize_from=path,
     #                   vars_to_warm_start=".*")
-    estimator = tf.estimator.Estimator(model_fn=model.model_fn, warm_start_from=path)
+    print("debug <loading from>:", path)
+    estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=path)
     return estimator
 
 if args.ensemble:
   predict_fns = [predictor.from_saved_model("%s/%s" % (args.save_dir, subdir))
                  for subdir in util.get_immediate_subdirectories(args.save_dir)]
 else:
-  predict_fns = [predictor.from_saved_model(args.save_dir)]
-  # predict_fns = [predictor.from_estimator(constrcut_predictor(args.save_dir), serving_input_receiver_fn=train_utils.serving_input_receiver_fn)]
+  # predict_fns = [predictor.from_saved_model(args.save_dir)]
+  estimator = constrcut_predictor(args.save_dir)
+  print("debug <converting estimator to predictor>")
+  predict_fns = [predictor.from_estimator(estimator, serving_input_receiver_fn=train_utils.serving_input_receiver_fn)]
 
 
 def dev_input_fn():

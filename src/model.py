@@ -250,14 +250,15 @@ class LISAModel:
                         attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
                         this_special_attn, special_attn_weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                       # todo patches everywhere!
-                      if special_attn is not None and hparams.output_attention_weight:
+                      if special_attn_weight is not None and hparams.output_attention_weight:
                         for i in range(special_attn_weight.get_shape()[0]):
                           items_to_log["{}_{}_weight_{}".format(attn_fn_map['name'], idx, i)] = special_attn_weight[i]
                       special_attn.append(this_special_attn)
+                      print(special_attn)
                   else:
                     with tf.variable_scope('{}'.format(attn_fn_map['name'])):
                       attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
-                      this_special_attn = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
+                      this_special_attn, weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                     special_attn.append(this_special_attn)
                 print("debug <layer_{} special attention>: ".format(i), special_attn )
 
