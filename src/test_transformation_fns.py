@@ -16,19 +16,10 @@ class OutputFnTests(tf.test.TestCase):
 	def test_transformation(self):
 		# raise NotImplemented
 		with self.test_session():
-			dependency_list = tf.constant([[1, 24, 4, 4, 1, -1], [1, 24, 4, 4, 1, 3]])
-			b1 = transformation_fn.local_window_balanced(dependency_list, 1)
-			b2 = transformation_fn.local_window_balanced(dependency_list, 2)
-			l1 = transformation_fn.local_window_ltilted(dependency_list, 1)
-			l2 = transformation_fn.local_window_ltilted(dependency_list, 2)
-			r1 = transformation_fn.local_window_rtilted(dependency_list, 1)
-			r2 = transformation_fn.local_window_rtilted(dependency_list, 2)
-			print(b1.eval())
-			print(b2.eval())
-			print(l1.eval())
-			print(l2.eval())
-			print(r1.eval())
-			print(r2.eval())
+			# code = size *12 + offset
+			block_list = tf.constant([[24, 25, 36, 37, 38, 0], [24, 25, 24, 25, 0, 0]], dtype=tf.int32)
+			line = transformation_fn.chunk_to_block_diag(block_list)
+			print(line.eval())
 			# weight = tf.constant([0.2, 0.3, 0.5])
 			# dependency_list_weight_pair = (dependency_list, weight)
 			# attention = attention_fns.attention_to_aggregated(mode=tf.estimator.ModeKeys.TRAIN, train_attention_to_aggregated=dependency_list_weight_pair, eval_attention_to_aggregated=None)

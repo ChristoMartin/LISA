@@ -1,3 +1,5 @@
+from functools import partial
+
 import tensorflow as tf
 import constants
 import nn_utils
@@ -40,13 +42,35 @@ def local_window_ltilted(input, strip_width):
   diag = tf.where(tf.greater(diag, 0), constants.VERY_LARGE * tf.ones_like(diag, dtype=tf.float32), constants.VERY_SMALL * tf.ones_like(diag, dtype=tf.float32))
   return tf.cast(diag, tf.float32)
 
+def gen_block_by_line(idx, len, size, offset):
+  array_idx = tf.range(len, dtype=tf.int32)
+  array_location =tf.math.logical_and(tf.greater_equal(array_idx, idx-offset), tf.less(array_idx, idx+size-offset))
+  # line = tf.where(array_location, tf.ones_like(array_idx, dtype=tf.float32),
+  #                 tf.zeros_like(array_idx, dtype=tf.float32))
+  line = tf.where(array_location, constants.VERY_LARGE * tf.ones_like(array_idx, dtype=tf.float32), constants.VERY_SMALL * tf.ones_like(array_idx, dtype=tf.float32))
+  # line = tf.Print(line, [line], "line")
+  return line
+def gen_block_by_instance(input, idxer):
+  seq_len = input.get_shape()[0]
+  size = tf.cast(input / 12, dtype=tf.int32)
+  offset = tf.cast(input % 12, dtype=tf.int32)
+  mtx = tf.map_fn(lambda inp: gen_block_by_line(idx = inp[0], len = seq_len, size = inp[1], offset = inp[2]), (idxer, size, offset), dtype=tf.float32)
+  return tf.cast(mtx, tf.float32)
+def chunk_to_block_diag(input):
+  seq_len = input.get_shape()[1]
+  idxer = tf.range(seq_len, dtype=tf.int32)
+  batch = tf.map_fn(lambda inp: gen_block_by_instance(inp, idxer), elems=input, dtype=tf.float32)
+  return tf.cast(batch, tf.float32)
+
+
 
 
 dispatcher = {
   'one_hot': one_hot,
   'local_window_balanced': local_window_balanced,
   'local_window_ltilted': local_window_ltilted,
-  'local_window_rtilted': local_window_rtilted
+  'local_window_rtilted': local_window_rtilted,
+  'chunk_to_block_diag': chunk_to_block_diag
 }
 
 
