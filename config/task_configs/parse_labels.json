@@ -5,18 +5,18 @@
       "name": "conditional_bilinear",
       "params": {
         "dep_rel_mlp": {
-          "layer": "parse_head",
+          "layer": "parse_gold",
           "output": "dep_rel_mlp"
         },
         "head_rel_mlp": {
-          "layer": "parse_head",
+          "layer": "parse_gold",
           "output": "head_rel_mlp"
         },
         "parse_preds_train": {
-          "label": "parse_head"
+          "label": "parse_gold"
         },
         "parse_preds_eval": {
-          "layer": "parse_head",
+          "layer": "parse_gold",
           "output": "predictions"
         }
       }
@@ -39,11 +39,11 @@
             ]
           },
           "parse_head_predictions": {
-            "layer": "parse_head",
+            "layer": "parse_gold",
             "output": "predictions"
           },
           "parse_head_targets": {
-            "label": "parse_head"
+            "label": "parse_gold"
           },
           "words": {
             "feature": "word"

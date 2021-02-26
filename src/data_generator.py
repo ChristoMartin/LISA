@@ -24,6 +24,7 @@ def conll_data_generator(filenames, data_config):
               datum_idx = data_config[d]['conll_idx']
               converter_name = data_config[d]['converter']['name'] if 'converter' in data_config[d] else 'default_converter'
               converter_params = data_converters.get_params(data_config[d], split_line, datum_idx)
+              # print(datum_idx, converter_name)
               # try:
               data = data_converters.dispatch(converter_name)(**converter_params)
               # except Exception as e:
@@ -32,7 +33,9 @@ def conll_data_generator(filenames, data_config):
               data_vals.extend(data)
           # if toks < 30:
             # print("debug <data_vals>: ",tuple(data_vals))
+          # print("debug <data_vals>:", tuple(data_vals))
           buf.append(tuple(data_vals))
+
         else:
           if buf:
             sents += 1

@@ -9,8 +9,8 @@ from t2t_data_reader import input_fn, token_based_batching
 def map_strings_to_ints(vocab_lookup_ops, data_config, feature_label_names, cached_embedding = None):
   def _mapper(d):
     intmapped = []
-    print("debug <feature_label_names>: ", feature_label_names)
-    print("debug <data_config>:", data_config)
+    # print("debug <feature_label_names>: ", feature_label_names)
+    # print("debug <data_config>:", data_config)
     for i, datum_name in enumerate(feature_label_names):
       if 'vocab' in data_config[datum_name]:
         # todo this is a little clumsy -- is there a better way to pass this info through?

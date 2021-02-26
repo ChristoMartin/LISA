@@ -14,11 +14,11 @@ cd $PBS_O_WORKDIR
 
 module add cuda9/9.0.176-cuDNN7.1.4 singularity/2.5.1 
 {
-CUDA_VISIBLE_DEVICES=0 singularity exec --nv /lustre/gk77/k77015/.Singularity/imgs/LISA.simg bin/train.sh config/lisa-injection/conll05-lisa.conf --save_dir .model/.model-lisa-injection/run-base/run-1 --num_gpus 1 &> .log/conll05-lisa-10layers-base-tbatching-injection-run-1.log
+CUDA_VISIBLE_DEVICES=0 singularity exec --nv /lustre/gk77/k77015/.Singularity/imgs/LISA.simg bin/train.sh config/lisa-injection/conll05-lisa.conf --save_dir .model/.model-lisa-injection/run-base-v2/run-1 --num_gpus 1 &> .log/conll05-lisa-10layers-base-tbatching-injection-run-1.log
 } & 
 
 {
 sleep 160
-CUDA_VISIBLE_DEVICES=1 singularity exec --nv /lustre/gk77/k77015/.Singularity/imgs/LISA.simg bin/train.sh config/lisa-injection/conll05-lisa.conf --save_dir .model/.model-lisa-injection/run-base/run-2 --num_gpus 1 &> .log/conll05-lisa-10layers-base-tbatching-injection-run-2.log
+CUDA_VISIBLE_DEVICES=1 singularity exec --nv /lustre/gk77/k77015/.Singularity/imgs/LISA.simg bin/train.sh config/lisa-injection/conll05-lisa.conf --save_dir .model/.model-lisa-injection/run-base-v2/run-2 --num_gpus 1 &> .log/conll05-lisa-10layers-base-tbatching-injection-run-2.log
 } &
 wait

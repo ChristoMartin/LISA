@@ -42,7 +42,10 @@ hparams = {
   'mode': 'train',
   'special_attention_mode': 'injection',
   'cwr': 'None',
-  'output_attention_weight': False
+  'output_attention_weight': False,
+  'internal_parse_attention_headcount': 1,
+  'external_parse_attention_aggregation_dep_cwr_headcount': 1,
+  'external_parse_attention_aggregation_dep': 1,
 }
 
 

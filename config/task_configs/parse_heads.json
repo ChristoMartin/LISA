@@ -1,5 +1,5 @@
 {
-  "parse_head": {
+  "parse_gold": {
     "penalty": 1.0,
     "output_fn": {
       "name": "parse_bilinear",

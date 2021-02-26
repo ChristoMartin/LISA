@@ -1,0 +1,43 @@
+{
+  "internal_parse_attention_singlehead": {
+    "attention_fns": {
+      "parse_gold": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_gold": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "output": {
+              "parse_gold": "scores"
+            }
+          }
+        }
+      }
+    }
+  },
+  "internal_parse_attention_multiheads": {
+    "attention_fns": {
+      "parse_gold": {
+        "name": "mean_aggregation",
+        "length": 5,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_gold": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "output": {
+              "parse_gold": "scores"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

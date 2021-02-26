@@ -83,6 +83,8 @@ class LISAModel:
 
     # todo can estimators handle dropout for us or do we need to do it on our own?
     hparams = self.hparams(mode)
+    tf.logging.log(tf.logging.INFO, "Running in {} mode.".format(mode))
+
 
     with tf.variable_scope("LISA", reuse=tf.AUTO_REUSE):
       # features = tf.Print(features, [features, tf.shape(features)], 'input features')
@@ -96,7 +98,7 @@ class LISAModel:
 
       # todo this assumes that word_type is always passed in
       words = feats['word_type']
-      print("debug <input features>:", features)
+      # print("debug <input features>:", features)
 
       # for masking out padding tokens
       tokens_to_keep = tf.where(tf.equal(words, constants.PAD_VALUE), tf.zeros([batch_size, batch_seq_len]),
@@ -105,8 +107,8 @@ class LISAModel:
       # Extract named features from monolithic "features" input
       feats = {f: tf.multiply(tf.cast(tokens_to_keep, tf.int32), v) for f, v in feats.items()}
       # feats = {f: tf.Print(feats[f], [feats[f]]) for f in feats.keys()}
-      print("<debug features>: ",feats)
-      print("debug <model_config>:", self.model_config)
+      # print("<debug features>: ",feats)
+      # print("debug <model_config>:", self.model_config)
 
       # Extract named labels from monolithic "features" input, and mask them
       # todo fix masking -- is it even necessary?
@@ -161,28 +163,22 @@ class LISAModel:
 
 
 
-      print("debug <registered lookup>: ", embeddings)
+      # print("debug <registered lookup>: ", embeddings)
       # tf.Print("marker", "Start processing ")
       # Set up model inputs
       inputs_list = []
       with tf.device("CPU:0"):
         if hparams.cwr != "None":
           # Initialize the embedding table with np array
-          print("debug <elmo embedding table size>", self.cwr_embedding.shape)
-          # cached_cwr_embeddings_placeholder_init = tf.constant_initializer(self.cwr_embedding)
-          # cached_cwr_embeddings_placeholder = tf.placeholder(dtype=tf.float32, shape=self.cwr_embedding.shape)
+          # print("debug <elmo embedding table size>", self.cwr_embedding.shape)
           cached_cwr_embeddings = tf.get_variable("cwr_embedding", shape=self.cwr_embedding.shape, trainable=False)
-          print("debug <cached_cwr_embedding size>", cached_cwr_embeddings)
-            # tf.Variable(cached_cwr_embeddings_placeholder_init(shape=self.cwr_embedding.shape, dtype=tf.float32),
-            #                                   trainable=False, name="cached_cwr_embeddings")
-          # embedding_init = cached_cwr_embeddings.assign(cached_cwr_embeddings_placeholder)
           def init_fn(scaffold, sess):
             sess.run(cached_cwr_embeddings.initializer, {cached_cwr_embeddings.initial_value: self.cwr_embedding})
           scaffold = tf.train.Scaffold(init_fn=init_fn)
 
 
         for input_name, input_transformation_name in self.model_config['inputs'].items():
-          print("debug <actual inputs>:", input_name, input_transformation_name)
+          # print("debug <actual inputs>:", input_name, input_transformation_name)
           input_values = feats[input_name]
           # input_values = tf.Print(input_values, ["input value under {}".format(input_name), input_values, tf.shape(input_values)])
           if input_transformation_name == "cached_embeddings":
@@ -243,7 +239,7 @@ class LISAModel:
 
               if 'attention_fns' in this_layer_attn_config:
                 for attn_fn, attn_fn_map in this_layer_attn_config['attention_fns'].items():
-                  print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
+                  # print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
                   if 'length' in attn_fn_map.keys():
                     for idx in range(attn_fn_map['length']): # To make sure that the three special attentions are different
                       with tf.variable_scope('{}_{}'.format(attn_fn_map['name'], idx)):
@@ -260,14 +256,14 @@ class LISAModel:
                       attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
                       this_special_attn, weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                     special_attn.append(this_special_attn)
-                print("debug <layer_{} special attention>: ".format(i), special_attn )
+                # print("debug <layer_{} special attention>: ".format(i), special_attn )
 
               if 'value_fns' in this_layer_attn_config:
                 for value_fn, value_fn_map in this_layer_attn_config['value_fns'].items():
                   value_fn_params = value_fns.get_params(mode, value_fn_map, predictions, feats, labels, embeddings)
                   this_special_values = value_fns.dispatch(value_fn_map['name'])(**value_fn_params)
                   special_values.append(this_special_values)
-                print("debug <layer_{} special values>: ".format(i), special_values)
+                # print("debug <layer_{} special values>: ".format(i), special_values)
 
             current_input = transformer.transformer(current_input, tokens_to_keep, layer_config['head_dim'],
                                                     layer_config['num_heads'], hparams.attn_dropout,
@@ -361,35 +357,36 @@ class LISAModel:
           # print("debug <final loss>: ", loss)
           # get learning rate w/ decay
         # todo dirty workaround
-        this_step_lr = train_utils.learning_rate(hparams, tf.train.get_global_step())
-        items_to_log['lr'] = this_step_lr
-          # print("debug <items to log>: ", items_to_log)
-          # print("debug <eval_metric_content>: ", eval_metric_ops)
+        if mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL:
+          this_step_lr = train_utils.learning_rate(hparams, tf.train.get_global_step())
+          items_to_log['lr'] = this_step_lr
+            # print("debug <items to log>: ", items_to_log)
+            # print("debug <eval_metric_content>: ", eval_metric_ops)
 
-        if hparams.optimizer == "lazyadam":
-          optimizer = LazyAdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
-                                        beta2=hparams.beta2, epsilon=hparams.epsilon,
-                                        use_nesterov=hparams.use_nesterov)
-        elif hparams.optimizer == "adam":
-          optimizer = tf.train.AdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
-                                                       beta2=hparams.beta2, epsilon=hparams.epsilon)
-        else:
-          raise NotImplementedError("The specified optimizer is not implemented")
-        gradients, variables = zip(*optimizer.compute_gradients(loss))
-        gradients, _ = tf.clip_by_global_norm(gradients, hparams.gradient_clip_norm)
-        train_op = optimizer.apply_gradients(zip(gradients, variables), global_step=tf.train.get_global_step())
+          if hparams.optimizer == "lazyadam":
+            optimizer = LazyAdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
+                                          beta2=hparams.beta2, epsilon=hparams.epsilon,
+                                          use_nesterov=hparams.use_nesterov)
+          elif hparams.optimizer == "adam":
+            optimizer = tf.train.AdamOptimizer(learning_rate=this_step_lr, beta1=hparams.beta1,
+                                                         beta2=hparams.beta2, epsilon=hparams.epsilon)
+          else:
+            raise NotImplementedError("The specified optimizer is not implemented")
+          gradients, variables = zip(*optimizer.compute_gradients(loss))
+          gradients, _ = tf.clip_by_global_norm(gradients, hparams.gradient_clip_norm)
+          train_op = optimizer.apply_gradients(zip(gradients, variables), global_step=tf.train.get_global_step())
 
           # export_outputs = {'predict_output': tf.estimator.export.PredictOutput({'scores': scores, 'preds': preds})}
 
-        logging_hook = tf.train.LoggingTensorHook(items_to_log, every_n_iter=100)
+          logging_hook = tf.train.LoggingTensorHook(items_to_log, every_n_iter=100)
 
-        summary_hook = tf.train.SummarySaverHook(
+          summary_hook = tf.train.SummarySaverHook(
             save_steps=500,
             summary_op=[tf.summary.scalar(k, items_to_log[k]) for k in items_to_log.keys()])
 
 
         flat_predictions = {"%s_%s" % (k1, k2): v2 for k1, v1 in predictions.items() for k2, v2 in v1.items()}
-        print("debug <flat predictions>:", flat_predictions)
+        # print("debug <flat predictions>:", flat_predictions)
         export_outputs = {tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
                           tf.estimator.export.PredictOutput(flat_predictions)}
 
@@ -400,10 +397,13 @@ class LISAModel:
         #     sess.run(tf.global_variables_initializer(), feed_dict={cached_cwr_embeddings_placeholder: self.cwr_embedding})
 
 
-        if hparams.mode == 'train':
+        if mode == tf.estimator.ModeKeys.TRAIN:
           return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
                                           training_hooks=[logging_hook, summary_hook], export_outputs=export_outputs, scaffold=scaffold if hparams.cwr!='None' else None)
-        else:
+        elif mode == tf.estimator.ModeKeys.EVAL:
           return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
                                             export_outputs=export_outputs, scaffold=scaffold if hparams.cwr!='None' else None)
-
+        elif mode == tf.estimator.ModeKeys.PREDICT:
+          return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, tf.no_op(), eval_metric_ops,
+                                            export_outputs=export_outputs,
+                                            scaffold=scaffold if hparams.cwr != 'None' else None)

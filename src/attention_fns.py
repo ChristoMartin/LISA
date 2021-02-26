@@ -60,35 +60,44 @@ def get_params(mode, attn_map, train_outputs, features, labels):
   # print("debug <attention fn get parameter>: ", params, params_map, features, labels)
   for param_name, param_values in params_map.items():
     # if this is a map-type param, do map lookups and pass those through
-    if param_name == "train_attention_aggregation":
+    if 'label' in param_values:
       if isinstance(param_values['label'], dict):
         attn_constraints = []
         for src, transformation_name in param_values['label'].items():
-          attn_map = transformation_fn.dispatch(transformation_name)(**transformation_fn.get_params(features[src], transformation_name, src))
+          attn_map = transformation_fn.dispatch(transformation_name)(**transformation_fn.get_params(labels[src], transformation_name, src))
           attn_constraints += [attn_map]
         params[param_name] = tf.stack(attn_constraints, axis=0)
-      elif isinstance(param_values['label'], list):
+      elif isinstance(param_values['label'], list): # only for compatability reason
         params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
+      elif isinstance(param_values['label'], str): # only for compatability reason
+        params[param_name] = labels[param_values['label']]
       else:
         print('Undefined attention source format')
         raise NotImplementedError
-    elif param_name == "eval_attention_aggregation":
-      if isinstance(param_values['label'], dict):
-        attn_constraints = []
-        for src, transformation_name in param_values['label'].items():
-          attn_map = transformation_fn.dispatch(transformation_name)(**transformation_fn.get_params(features[src], transformation_name, src))
-          attn_constraints += [attn_map]
-        params[param_name] = tf.stack(attn_constraints, axis=0)
-      elif isinstance(param_values['label'], list):
-        params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
+    elif 'output' in param_values:
+      if isinstance(param_values['output'], dict):
+        outputs = []
+        for layer_name, output_name in param_values['output'].items():
+          outputs_layer = train_outputs[layer_name]
+          outputs += [outputs_layer[output_name]]
+        params[param_name] = tf.stack(outputs, axis=0)
       else:
-        print('Undefined attention source format')
         raise NotImplementedError
-    elif 'label' in param_values:
-      params[param_name] = labels[param_values['label']]
     elif 'feature' in param_values:
-      params[param_name] = features[param_values['feature']]
-    # otherwise, this is a previous-prediction-type param, look those up and pass through
+      if isinstance(param_values['feature'], dict):
+        attn_constraints = []
+        for src, transformation_name in param_values['feature'].items():
+          attn_map = transformation_fn.dispatch(transformation_name)(
+            **transformation_fn.get_params(features[src], transformation_name, src))
+          attn_constraints += [attn_map]
+        params[param_name] = tf.stack(attn_constraints, axis=0)
+      elif isinstance(param_values['feature'], list):  # only for compatability reason
+        params[param_name] = tf.stack([features[src] for src in param_values['feature']], axis=0)
+      elif isinstance(param_values['feature'], str):  # only for compatability reason
+        params[param_name] = features[param_values['label']]
+      else:
+        print('Undefined attention source format')
+        raise NotImplementedError
     elif 'layer' in param_values:
       outputs_layer = train_outputs[param_values['layer']]
       params[param_name] = outputs_layer[param_values['output']]

@@ -78,7 +78,7 @@ vocab = Vocab(data_config, args.save_dir)
 vocab.update(test_filenames)
 
 hparams.mode = 'predict'
-print("debug <hparams>:", hparams)
+# print("debug <hparams>:", hparams)
 
 
 embedding_files = [embeddings_map['pretrained_embeddings'] for embeddings_map in model_config['embeddings'].values()
@@ -116,7 +116,7 @@ def constrcut_predictor(path):
                       vocab)
     # ws = WarmStartSettings(ckpt_to_initialize_from=path,
     #                   vars_to_warm_start=".*")
-    print("debug <loading from>:", path)
+    # print("debug <loading from>:", path)
     estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=path)
     return estimator
 
@@ -126,7 +126,7 @@ if args.ensemble:
 else:
   # predict_fns = [predictor.from_saved_model(args.save_dir)]
   estimator = constrcut_predictor(args.save_dir)
-  print("debug <converting estimator to predictor>")
+  # print("debug <converting estimator to predictor>")
   predict_fns = [predictor.from_estimator(estimator, serving_input_receiver_fn=train_utils.serving_input_receiver_fn)]
 
 

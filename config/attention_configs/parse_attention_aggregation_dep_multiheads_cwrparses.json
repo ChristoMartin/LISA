@@ -1,0 +1,24 @@
+{
+  "parse_attention_aggregation_cwr_": {
+    "attention_fns": {
+      "parse_heads": {
+        "name": "linear_aggregation",
+        "length": 5,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+               "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+               "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -17,7 +17,7 @@ class OutputFnTests(tf.test.TestCase):
 		# raise NotImplemented
 		with self.test_session():
 			# code = size *12 + offset
-			block_list = tf.constant([[24, 25, 36, 37, 38, 0], [24, 25, 24, 25, 0, 0]], dtype=tf.int32)
+			block_list = tf.constant([[24, 25, 12, 12, 12, 0], [24, 25, 24, 25, 0, 0]], dtype=tf.int32)
 			line = transformation_fn.chunk_to_block_diag(block_list)
 			print(line.eval())
 			# weight = tf.constant([0.2, 0.3, 0.5])

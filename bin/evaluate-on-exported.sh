@@ -19,6 +19,5 @@ python3 src/evaluate.py \
 --task_configs $task_configs \
 --layer_configs $layer_configs \
 --attention_configs "$attention_configs" \
---hparam "mode=evaluate" \
 $params
 

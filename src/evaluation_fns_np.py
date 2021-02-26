@@ -438,7 +438,7 @@ def conll_srl_eval_np(predictions, targets, predicate_predictions, words, mask, 
   accumulator['excess'] += excess
   accumulator['missed'] += missed
 
-  print("<debug srl c {}, excess {}, missed{}>".format(accumulator['correct'], accumulator['excess'], accumulator['missed']))
+  # print("<debug srl c {}, excess {}, missed{}>".format(accumulator['correct'], accumulator['excess'], accumulator['missed']))
 
   precision = accumulator['correct'] / (accumulator['correct'] + accumulator['excess'])
   recall = accumulator['correct'] / (accumulator['correct'] + accumulator['missed'])

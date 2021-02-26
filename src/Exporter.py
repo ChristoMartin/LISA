@@ -56,6 +56,9 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 		for file in glob.glob(r'{}*'.format(checkpoint.path)):
 			self._log('copying {} to {}'.format(file, desination_dir))
 			shutil.copy(file, desination_dir)
+		checkpint_file = os.path.join(checkpoint.dir, 'checkpoint')
+		shutil.copy(checkpint_file, desination_dir)
+		# shutil.copy(os.join())
 
 	def _destinationDir(self, checkpoint):
 		return os.path.join(checkpoint.dir, self.name)

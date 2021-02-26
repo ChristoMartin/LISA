@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+echo $1
 config_file=$1
 
 source ${config_file}
