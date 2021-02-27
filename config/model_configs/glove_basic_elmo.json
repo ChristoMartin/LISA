@@ -24,7 +24,7 @@
    "use_nesterov": true,
    "batch_size": 5000,
    "is_token_based_batching": true,
-   "special_attention_mode": "injection",
+   "special_attention_mode": "discounting",
    "cwr": "ELMo"
  },
  "layers": {

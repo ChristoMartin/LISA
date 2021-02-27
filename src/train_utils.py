@@ -22,6 +22,9 @@ def load_hparams(args, model_config):
     hparams.set_hparam('eval_throttle_secs', 60)
     hparams.set_hparam('eval_every_steps', 500)
 
+  if args.okazaki_discounting:
+    hparams.set_hparam('special_attention_mode', 'okazaki_discounting')
+
   # Override those with command line hyperparams
   if args.hparams:
     hparams.parse(args.hparams)

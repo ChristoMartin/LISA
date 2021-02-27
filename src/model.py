@@ -228,20 +228,21 @@ class LISAModel:
           # print("debug: <constructing {}-th layer>".format(i))
           with tf.variable_scope('layer%d' % i):
 
-            special_attn = []
+            special_attn = [[], []] #first bracket is for hard injection attns, the sencond is for discounting attns
             special_values = []
             if i in self.attention_config:
 
               this_layer_attn_config = self.attention_config[i]
-              # print("debug: <layer_{} config>: ".format(i), this_layer_attn_config)
+              print("debug: <layer_{} config>: ".format(i), this_layer_attn_config)
 
               # print("debug <attention configuration>@{}: ".format(i), this_layer_attn_config)
 
               if 'attention_fns' in this_layer_attn_config:
                 for attn_fn, attn_fn_map in this_layer_attn_config['attention_fns'].items():
                   # print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
-                  if 'length' in attn_fn_map.keys():
-                    for idx in range(attn_fn_map['length']): # To make sure that the three special attentions are different
+                  if 'length' in attn_fn_map.keys() or hparams.use_hparams_headcounts:
+                    hc = hparams.__dict__['{}_headcount'.format(attn_fn)] if hparams.use_hparams_headcounts else  attn_fn_map['length']
+                    for idx in range(hc): # To make sure that the three special attentions are different
                       with tf.variable_scope('{}_{}'.format(attn_fn_map['name'], idx)):
                         attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
                         this_special_attn, special_attn_weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
@@ -249,16 +250,32 @@ class LISAModel:
                       if special_attn_weight is not None and hparams.output_attention_weight:
                         for i in range(special_attn_weight.get_shape()[0]):
                           items_to_log["{}_{}_weight_{}".format(attn_fn_map['name'], idx, i)] = special_attn_weight[i]
-                      special_attn.append(this_special_attn)
+                      if hparams.__dict__['{}_injection'.format(attn_fn)] == 'injection':
+                        special_attn[0].append(this_special_attn)
+                      elif hparams.__dict__['{}_injection'.format(attn_fn)] == 'discounting':
+                        special_attn[1].append(this_special_attn)
+                      else:
+                        tf.logging.log(tf.logging.ERROR, "The spcified injection method {} has not been implemented".format(attn_fn_map['injection_method']))
+                        raise NotImplementedError
                       print(special_attn)
                   else:
                     with tf.variable_scope('{}'.format(attn_fn_map['name'])):
                       attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
                       this_special_attn, weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
-                    special_attn.append(this_special_attn)
+                    if hparams.__dict__['{}_injection'.format(attn_fn)] == 'injection':
+                      special_attn[0].append(this_special_attn)
+                    elif hparams.__dict__['{}_injection'.format(attn_fn)] == 'discounting':
+                      special_attn[1].append(this_special_attn)
+                    else:
+                      tf.logging.log(tf.logging.ERROR,
+                                     "The spcified injection method {} has not been implemented".format(
+                                       attn_fn_map['injection_method']))
+                      raise NotImplementedError
                 # print("debug <layer_{} special attention>: ".format(i), special_attn )
 
               if 'value_fns' in this_layer_attn_config:
+                tf.logging.log(tf.logging.ERROR, "special value section has been dropped temporarily")
+                raise NotImplementedError
                 for value_fn, value_fn_map in this_layer_attn_config['value_fns'].items():
                   value_fn_params = value_fns.get_params(mode, value_fn_map, predictions, feats, labels, embeddings)
                   this_special_values = value_fns.dispatch(value_fn_map['name'])(**value_fn_params)

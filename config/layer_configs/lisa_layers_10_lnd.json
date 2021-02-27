@@ -1,9 +1,0 @@
-{
-  "local_aggregation_attention_multiheads": [1, 2],
-  "local_dep_aggregation_attention_multiheads": [3, 4],
-  "joint_pos_predicate": 2,
-  "parse_head": 4,
-  "parse_label": 4,
-  "parse_attention": 5,
-  "srl": 9
-}

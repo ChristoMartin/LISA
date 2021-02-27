@@ -166,7 +166,7 @@ def dot_product_attention(q, k, v,
 
 def discounting_dot_product_attention(q, k, v,
                           bias,
-                          discounters,
+                          special_attentions,
                           dropout_rate=1.0):
   """dot-product attention.
   Args:
@@ -180,35 +180,58 @@ def discounting_dot_product_attention(q, k, v,
   Returns:
     A Tensor.
   """
-  with tf.variable_scope("discounting_dot_product_attention", values=[q, k, v, discounters]):
+  with tf.variable_scope("discounting_dot_product_attention", values=[q, k, v, special_attentions]):
     # [batch, num_heads, query_length, memory_length]
     # todo assure the shape of logit and discounter are equal!
+    injections = special_attentions[0]
+    discounters = special_attentions[1]
+
     logits = tf.matmul(q, k, transpose_b=True)
+
+    if injections:
+      logits = tf.concat([logits] + list(map(lambda x: tf.expand_dims(x, 1), injections)), axis=1)
+
     if bias is not None:
       logits += bias
 
+    num_attn_to_discount = len(discounters)
+    num_attn_to_inject = len(injections)
+
+
     if discounters:
-      num_attn_to_discount = len(discounters)
+
       # todo dangerous! not clear whether the discounter list contain only one or multiple elements.
       # todo had to account for the multi-element case
       discounters = tf.stack(discounters, 1)
-      masked_logits =  tf.where(tf.greater(discounters, 0), logits[:, -num_attn_to_discount:], tf.fill(tf.shape(discounters)
-        , constants.VERY_SMALL))
-      logits = tf.concat([logits[:, :-num_attn_to_discount], masked_logits], axis=1)
-      weights = tf.nn.softmax(logits, -1)
-      discounted_weights = weights[:, -num_attn_to_discount:] * discounters
+      masked_logits =  tf.where(tf.greater(discounters, 0), logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject]
+                                , tf.fill(tf.shape(discounters), constants.VERY_SMALL))
+      # logits = tf.concat([logits[:, :-num_attn_to_discount], masked_logits], axis=1)
+      # weights = tf.nn.softmax(logits, -1)
+      discounted_weights = tf.nn.softmax(masked_logits, -1) * discounters
       rescaling_factors = tf.reduce_sum(discounted_weights, axis=-1)
-      discounted_weights = discounted_weights / tf.expand_dims(rescaling_factors, -1)
-      weights = tf.concat([weights[:, :-num_attn_to_discount], discounted_weights], axis=1)
+      discounted_weights = [discounted_weights / tf.expand_dims(rescaling_factors, -1)]
+    else:
+      discounted_weights = []
+      # weights = tf.concat([weights[:, :-num_attn_to_discount], discounted_weights], axis=1)
+    if injections:
+      injected_weights = list(map(lambda x: tf.expand_dims(x, 1), injections))
+    else:
+      injected_weights = []
+        # tf.concat([tf.nn.softmax(logits, -1)[:, :-num_attn_to_inject, :, :]] + list(
+        # map(lambda x: tf.expand_dims(x, 1), injections)), axis=1)
+    if discounters or injections:
+      weights = tf.concat([tf.nn.softmax(logits[:, :-num_attn_to_discount-num_attn_to_inject], -1)] + discounted_weights +
+                        injected_weights, axis=1)
     else:
       weights = tf.nn.softmax(logits, -1)
+
     weights_drop = tf.nn.dropout(weights, dropout_rate)
     # raise NotImplementedError
     return tf.matmul(weights_drop, v), logits
 
 def okazaki_discounting_dot_product_attention(q, k, v,
                           bias,
-                          discounters,
+                          special_attentions,
                           dropout_rate=1.0):
   """dot-product attention.
   This version is presented
@@ -223,22 +246,36 @@ def okazaki_discounting_dot_product_attention(q, k, v,
   Returns:
     A Tensor.
   """
-  with tf.variable_scope("okazaki_discounting_dot_product_attention", values=[q, k, v, discounters]):
+  with tf.variable_scope("okazaki_discounting_dot_product_attention", values=[q, k, v, special_attentions]):
     # [batch, num_heads, query_length, memory_length]
     # todo assure the shape of logit and discounter are equal!
+    injections = special_attentions[0]
+    discounters = special_attentions[1]
+
     logits = tf.matmul(q, k, transpose_b=True)
+
+    if injections:
+      logits = tf.concat([logits] + list(map(lambda x: tf.expand_dims(x, 1), injections)), axis=1)
+
     if bias is not None:
       logits += bias
 
+    num_attn_to_discount = len(discounters)
+    num_attn_to_inject = len(injections)
+
+
     if discounters:
-      num_attn_to_discount = len(discounters)
       discounters = tf.stack(discounters, 1)
-      logits = tf.concat([logits[:, :-num_attn_to_discount], logits[:, -num_attn_to_discount:]*discounters], axis=1)
-      weights = tf.nn.softmax(logits, -1)
+      # discounted_logits = tf.concat([logits[:, :-num_attn_to_discount], logits[:, -num_attn_to_discount:] * discounters], axis=1)
+      discounted_weights = tf.nn.softmax(logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject] * discounters, -1)
+    if injections:
+      injected_weights = list(map(lambda x: tf.expand_dims(x, 1), injections))
+    if discounters or injections:
+      weights = tf.concat([tf.nn.softmax(logits[:, :-num_attn_to_discount-num_attn_to_inject], -1), discounted_weights] +
+                        injected_weights, axis=1)
     else:
       weights = tf.nn.softmax(logits, -1)
     weights_drop = tf.nn.dropout(weights, dropout_rate)
-    # raise NotImplementedError
     return tf.matmul(weights_drop, v), logits
 
 
@@ -297,15 +334,18 @@ def multihead_attention(antecedent,
 
     total_output_size = head_size * num_heads
 
-    if special_attention_mode == 'injection':
-      num_basic_attention_heads = num_heads - len(special_attention)
-      num_basic_value_heads = num_heads - len(special_values)
-    elif special_attention_mode == 'discounting' or special_attention_mode =='okazaki_discounting':
-      num_basic_attention_heads = num_heads
-      num_basic_value_heads = num_heads
-    else:
-      tf.logging.log(tf.logging.FATAL, "Special attention mode {} do not exist".format(special_attention_mode))
-      raise NotImplementedError
+    num_basic_attention_heads = num_heads - len(special_attention[0])-len(special_attention[1])
+    num_basic_value_heads = num_heads - len(special_values)
+
+    # if special_attention_mode == 'injection':
+    #   num_basic_attention_heads = num_heads - len(special_attention)
+    #   num_basic_value_heads = num_heads - len(special_values)
+    # elif special_attention_mode == 'discounting' or special_attention_mode =='okazaki_discounting':
+    #   num_basic_attention_heads = num_heads
+    #   num_basic_value_heads = num_heads
+    # else:
+    #   tf.logging.log(tf.logging.FATAL, "Special attention mode {} do not exist".format(special_attention_mode))
+    #   raise NotImplementedError
 
     total_basic_key_size = num_basic_attention_heads * head_size
     total_basic_value_size = num_basic_value_heads * head_size
@@ -322,9 +362,7 @@ def multihead_attention(antecedent,
 
     # key_depth_per_head = total_key_depth // num_heads
     q *= head_size**-0.5
-    if special_attention_mode == 'injection':
-      x, attn_weights = dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
-    elif special_attention_mode == 'discounting':
+    if special_attention_mode == 'discounting':
       x, attn_weights = discounting_dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
     elif special_attention_mode == 'okazaki_discounting':
       x, attn_weights = okazaki_discounting_dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
@@ -343,7 +381,7 @@ def transformer(inputs, seq_lengths, head_size, num_heads, attn_dropout, ff_drop
                 relu_hidden_size, special_attention, special_values, special_attention_mode = 'injection'):
 
   # todo deal with special_attention, special_values
-
+  # Note that the current input of special attn is of [[injection], [discounting]]
   with tf.name_scope('transformer_layer'):
     mask = attention_bias_ignore_padding(seq_lengths)
 

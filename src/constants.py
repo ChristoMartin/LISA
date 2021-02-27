@@ -40,12 +40,17 @@ hparams = {
   'gamma': 0.0,
   'is_token_based_batching': True,
   'mode': 'train',
-  'special_attention_mode': 'injection',
+  'special_attention_mode': 'discounting',
   'cwr': 'None',
   'output_attention_weight': False,
-  'internal_parse_attention_headcount': 1,
-  'external_parse_attention_aggregation_dep_cwr_headcount': 1,
-  'external_parse_attention_aggregation_dep': 1,
+  'parse_gold_headcount': 1,
+  'parse_dep_headcount': 1,
+  'parse_dep_cwrs_headcount': 1,
+  'use_hparams_headcounts': True,
+  'parse_gold_injection': 'injection',
+  'parse_dep_injection': 'injection',
+  'parse_dep_cwrs_injection': 'injection'
+
 }
 
 

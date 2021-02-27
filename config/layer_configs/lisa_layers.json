@@ -2,6 +2,6 @@
   "joint_pos_predicate": 2,
   "parse_gold": 4,
   "parse_label": 4,
-  "parse_attention": 5,
+  "internal_parse_attention": 5,
   "srl": 11
 }

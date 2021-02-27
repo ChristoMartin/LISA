@@ -3,7 +3,7 @@
     "attention_fns": {
       "parse_gold": {
         "name": "mean_aggregation",
-        "length": 1,
+        "length": 5,
         "params": {
           "train_attention_aggregation": {
             "label": {
@@ -19,11 +19,11 @@
       }
     }
   },
-  "external_parse_attention_linear_aggregation_dep_cwr": {
+  "external_parse_attention_aggregation_dep_cwr": {
     "attention_fns": {
       "parse_dep_cwrs": {
         "name": "linear_aggregation",
-        "length": 1,
+        "length": 5,
         "params": {
           "train_attention_aggregation": {
             "feature": {
@@ -41,11 +41,11 @@
       }
     }
   },
-  "external_parse_attention_linear_aggregation_dep": {
+  "external_parse_attention_aggregation_dep": {
     "attention_fns": {
       "parse_dep": {
         "name": "linear_aggregation",
-        "length": 1,
+        "length": 5,
         "params": {
           "train_attention_aggregation": {
             "label": {
