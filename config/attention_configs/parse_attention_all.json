@@ -41,6 +41,30 @@
       }
     }
   },
+  "external_parse_attention_mlp_linear_aggregation_dep_cwr": {
+    "attention_fns": {
+      "parse_dep_cwrs": {
+        "name": "linear_aggregation_mlp",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            },
+            "sentence_feature": true
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+               "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            },
+            "sentence_feature": true
+          }
+        }
+      }
+    }
+  },
   "external_parse_attention_linear_aggregation_dep": {
     "attention_fns": {
       "parse_dep": {
@@ -48,21 +72,115 @@
         "length": 1,
         "params": {
           "train_attention_aggregation": {
-            "label": {
+            "feature": {
               "parse_biaffine": "one_hot",
               "parse_crf": "one_hot",
               "parse_crf2o": "one_hot",
               "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "onehot"
+              "parse_stanford_sr": "one_hot"
             }
           },
           "eval_attention_aggregation": {
-            "label": {
+            "feature": {
               "parse_biaffine": "one_hot",
               "parse_crf": "one_hot",
               "parse_crf2o": "one_hot",
               "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "onehot"
+              "parse_stanford_sr": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mlp_linear_aggregation_dep": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation_mlp",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot"
+            },
+            "sentence_feature": true
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot"
+            },
+            "sentence_feature": true
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_linear_aggregation_dep_allparsers": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mlp_linear_aggregation_dep_allparsers": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation_mlp",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
             }
           }
         }

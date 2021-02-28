@@ -206,6 +206,13 @@ class LISAModel:
           tf.logging.log(tf.logging.INFO, "Added %s to inputs list." % input_name)
       # TODO a mere workaround with one element concat
       current_input = tf.concat(inputs_list, axis=-1)
+
+      ## <guard: condition to enter sentence features>
+      ## suppose the dim is of (B, S, H)
+      sentence_feature = tf.reduce_sum(current_input * tf.expand_dims(tokens_to_keep, -1), axis=1)
+      sentence_feature /= tf.expand_dims(tf.reduce_sum(tokens_to_keep, axis=1), -1) #To get the mean of all embeddings
+      feats['sentence_feature'] = sentence_feature
+      ## <guard: condition to enter sentence features>
       current_input = tf.nn.dropout(current_input, hparams.input_dropout)
 
       with tf.variable_scope('project_input'):
@@ -244,7 +251,7 @@ class LISAModel:
                     hc = hparams.__dict__['{}_headcount'.format(attn_fn)] if hparams.use_hparams_headcounts else  attn_fn_map['length']
                     for idx in range(hc): # To make sure that the three special attentions are different
                       with tf.variable_scope('{}_{}'.format(attn_fn_map['name'], idx)):
-                        attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
+                        attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels, hparams, self.model_config)
                         this_special_attn, special_attn_weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                       # todo patches everywhere!
                       if special_attn_weight is not None and hparams.output_attention_weight:
@@ -260,8 +267,8 @@ class LISAModel:
                       print(special_attn)
                   else:
                     with tf.variable_scope('{}'.format(attn_fn_map['name'])):
-                      attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels)
-                      this_special_attn, weight = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
+                      attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels, hparams, self.model_config)
+                      this_special_attn, _ = attention_fns.dispatch(attn_fn_map['name'])(**attention_fn_params)
                     if hparams.__dict__['{}_injection'.format(attn_fn)] == 'injection':
                       special_attn[0].append(this_special_attn)
                     elif hparams.__dict__['{}_injection'.format(attn_fn)] == 'discounting':

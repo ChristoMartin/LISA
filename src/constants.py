@@ -40,7 +40,7 @@ hparams = {
   'gamma': 0.0,
   'is_token_based_batching': True,
   'mode': 'train',
-  'special_attention_mode': 'discounting',
+  'special_attention_mode': 'my_discounting',
   'cwr': 'None',
   'output_attention_weight': False,
   'parse_gold_headcount': 1,

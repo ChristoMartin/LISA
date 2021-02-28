@@ -22,6 +22,17 @@ def graph_mean_aggregation(dep_graph_list):
     aggregated_graph = tf.nn.softmax(tf.math.reduce_sum(dep_graph_list, axis=0), dim=-1)
   return aggregated_graph
 
+def graph_mlp_aggregation(dep_graph_list, v, mlp_dropout, projection_dim):
+  num_dep_grap = dep_graph_list.get_shape()[:1]
+  with tf.variable_scope('MLP'):
+    mlp = MLP(v, projection_dim, keep_prob=mlp_dropout, n_splits=1)
+  with tf.variable_scope('Classifier'):
+    logits = MLP(mlp, num_dep_grap[0], keep_prob=mlp_dropout, n_splits=1)
+  aggregated_graph = tf.math.reduce_sum(
+      tf.nn.softmax(dep_graph_list, dim=-1) * tf.nn.softmax(tf.transpose(logits))[:, :, tf.newaxis, tf.newaxis],
+      axis=0)
+  return aggregated_graph, tf.nn.softmax(logits)
+
 def leaky_relu(x): return tf.maximum(0.1 * x, x)
 
 

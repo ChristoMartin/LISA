@@ -203,8 +203,12 @@ def discounting_dot_product_attention(q, k, v,
       # todo dangerous! not clear whether the discounter list contain only one or multiple elements.
       # todo had to account for the multi-element case
       discounters = tf.stack(discounters, 1)
-      masked_logits =  tf.where(tf.greater(discounters, 0), logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject]
+      if num_attn_to_inject == 0:
+        masked_logits =  tf.where(tf.greater(discounters, 0), logits[:, -num_attn_to_discount:]
                                 , tf.fill(tf.shape(discounters), constants.VERY_SMALL))
+      else:
+        masked_logits = tf.where(tf.greater(discounters, 0), logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject]
+                                 , tf.fill(tf.shape(discounters), constants.VERY_SMALL))
       # logits = tf.concat([logits[:, :-num_attn_to_discount], masked_logits], axis=1)
       # weights = tf.nn.softmax(logits, -1)
       discounted_weights = tf.nn.softmax(masked_logits, -1) * discounters
@@ -219,7 +223,7 @@ def discounting_dot_product_attention(q, k, v,
       injected_weights = []
         # tf.concat([tf.nn.softmax(logits, -1)[:, :-num_attn_to_inject, :, :]] + list(
         # map(lambda x: tf.expand_dims(x, 1), injections)), axis=1)
-    if discounters or injections:
+    if num_attn_to_inject+num_attn_to_discount>0 :
       weights = tf.concat([tf.nn.softmax(logits[:, :-num_attn_to_discount-num_attn_to_inject], -1)] + discounted_weights +
                         injected_weights, axis=1)
     else:
@@ -267,12 +271,20 @@ def okazaki_discounting_dot_product_attention(q, k, v,
     if discounters:
       discounters = tf.stack(discounters, 1)
       # discounted_logits = tf.concat([logits[:, :-num_attn_to_discount], logits[:, -num_attn_to_discount:] * discounters], axis=1)
-      discounted_weights = tf.nn.softmax(logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject] * discounters, -1)
+      if num_attn_to_inject == 0:
+        discounted_weights = tf.nn.softmax(logits[:, -num_attn_to_discount:] * discounters, -1)
+      else:
+        discounted_weights = tf.nn.softmax(logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject] * discounters, -1)
+    else:
+      discounted_weights = []
     if injections:
       injected_weights = list(map(lambda x: tf.expand_dims(x, 1), injections))
-    if discounters or injections:
-      weights = tf.concat([tf.nn.softmax(logits[:, :-num_attn_to_discount-num_attn_to_inject], -1), discounted_weights] +
-                        injected_weights, axis=1)
+    else:
+      injected_weights = []
+    if num_attn_to_inject+num_attn_to_discount>0 :
+      weights = tf.concat(
+        [tf.nn.softmax(logits[:, :-num_attn_to_discount - num_attn_to_inject], -1)] + discounted_weights +
+        injected_weights, axis=1)
     else:
       weights = tf.nn.softmax(logits, -1)
     weights_drop = tf.nn.dropout(weights, dropout_rate)
@@ -334,7 +346,7 @@ def multihead_attention(antecedent,
 
     total_output_size = head_size * num_heads
 
-    num_basic_attention_heads = num_heads - len(special_attention[0])-len(special_attention[1])
+    num_basic_attention_heads = num_heads - len(special_attention[0])
     num_basic_value_heads = num_heads - len(special_values)
 
     # if special_attention_mode == 'injection':
@@ -362,7 +374,7 @@ def multihead_attention(antecedent,
 
     # key_depth_per_head = total_key_depth // num_heads
     q *= head_size**-0.5
-    if special_attention_mode == 'discounting':
+    if special_attention_mode == 'my_discounting':
       x, attn_weights = discounting_dot_product_attention(q, k, v, bias, special_attention, dropout_rate)
     elif special_attention_mode == 'okazaki_discounting':
       x, attn_weights = okazaki_discounting_dot_product_attention(q, k, v, bias, special_attention, dropout_rate)

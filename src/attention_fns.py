@@ -32,17 +32,20 @@ def mean_aggregation(mode, train_attention_aggregation, eval_attention_aggregati
   attention_to_aggregated = nn_utils.graph_mean_aggregation(attention_to_aggregated)
   return tf.cast(attention_to_aggregated, tf.float32), None
 
-def linear_aggregation_by_mlp(mode, train_attention_aggregation, eval_attention_aggregation, v):
+def linear_aggregation_by_mlp(mode, train_attention_aggregation, eval_attention_aggregation, v, mlp_dropout, projection_dim):
   # v is the sentence-level feature, can be either mean(we), mean(latest self-attention layer output)...
+  attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
+  aggregated_attention, weight = nn_utils.graph_mlp_aggregation(attention_to_aggregated, v, mlp_dropout, projection_dim)
 
-
-  raise NotImplementedError
+  # raise NotImplementedError
+  return tf.cast(aggregated_attention, tf.float32), weight
 
 
 dispatcher = {
   'copy_from_predicted': copy_from_predicted,
   'linear_aggregation': linear_aggregation,
-  'mean_aggregation': mean_aggregation
+  'mean_aggregation': mean_aggregation,
+  'linear_aggregation_mlp': linear_aggregation_by_mlp
 }
 
 
@@ -54,9 +57,10 @@ def dispatch(fn_name):
     exit(1)
 
 
-def get_params(mode, attn_map, train_outputs, features, labels):
+def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_config):
   params = {'mode': mode}
   params_map = attn_map['params']
+  # if attn_map['name']
   # print("debug <attention fn get parameter>: ", params, params_map, features, labels)
   for param_name, param_values in params_map.items():
     # if this is a map-type param, do map lookups and pass those through
@@ -67,6 +71,7 @@ def get_params(mode, attn_map, train_outputs, features, labels):
           attn_map = transformation_fn.dispatch(transformation_name)(**transformation_fn.get_params(labels[src], transformation_name, src))
           attn_constraints += [attn_map]
         params[param_name] = tf.stack(attn_constraints, axis=0)
+        # params['num_dep_graphs']
       elif isinstance(param_values['label'], list): # only for compatability reason
         params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
       elif isinstance(param_values['label'], str): # only for compatability reason
@@ -74,6 +79,11 @@ def get_params(mode, attn_map, train_outputs, features, labels):
       else:
         print('Undefined attention source format')
         raise NotImplementedError
+      # todo sentence feature may be invoked by non-aggregation attentions
+      if 'sentence_feature' in param_values:
+        params['mlp_dropout'] = hparams['mlp_dropout']
+        params['projection_dim'] = model_config['linear_aggregation_scorer_mlp_size']
+        params['v'] = features['sentence_feature']
     elif 'output' in param_values:
       if isinstance(param_values['output'], dict):
         outputs = []
@@ -98,6 +108,11 @@ def get_params(mode, attn_map, train_outputs, features, labels):
       else:
         print('Undefined attention source format')
         raise NotImplementedError
+      # todo sentence feature may be invoked by non-aggregation attentions
+      if 'sentence_feature' in param_values:
+        params['mlp_dropout'] = hparams.mlp_dropout
+        params['projection_dim'] = model_config['linear_aggregation_scorer_mlp_size']
+        params['v'] = features['sentence_feature']
     elif 'layer' in param_values:
       outputs_layer = train_outputs[param_values['layer']]
       params[param_name] = outputs_layer[param_values['output']]

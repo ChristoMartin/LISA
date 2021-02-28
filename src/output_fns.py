@@ -193,6 +193,15 @@ def conditional_bilinear(mode, hparams, model_config, inputs, targets, num_label
   return output
 
 
+def mean_sentential_feature(mode, hparams, model_config, inputs, tokens_to_keep):
+  #suppose input is of form (B, Seq, H) and tokens to keep is of form (B, Seq)
+  masked_input = input * tf.expand_dims(tokens_to_keep, -1)
+  sent_embedding = tf.reduce_sum(masked_input, axis=1)
+  return {
+    'embedding':sent_embedding
+  }
+  raise NotImplementedError
+
 def srl_bilinear(mode, hparams, model_config, inputs, targets, num_labels, tokens_to_keep, predicate_preds_train,
                  predicate_preds_eval, predicate_targets, transition_params):
     '''

@@ -45,6 +45,8 @@ arg_parser.add_argument('--attention_configs',
 
 arg_parser.add_argument('--ensemble', dest='ensemble', action='store_true',
                         help='Whether to ensemble models in save dir.')
+arg_parser.add_argument('--okazaki_discounting', type=bool, default=False,
+                        help='whether to use okazaki style of discounting method')
 
 arg_parser.set_defaults(debug=False, ensemble=False)
 
