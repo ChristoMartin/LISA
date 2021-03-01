@@ -166,6 +166,52 @@ def parse_bilinear(mode, hparams, model_config, inputs, targets, num_labels, tok
 
   return output
 
+def parse_aggregation(mode, hparams, model_config, inputs, targets, num_labels, tokens_to_keep, transition_params):
+  class_mlp_size = model_config['class_mlp_size']
+  attn_mlp_size = model_config['attn_mlp_size']
+
+  if transition_params is not None:
+    print('Transition params not supported in parse_aggregation')
+    exit(1)
+
+  with tf.variable_scope('parse_bilinear'):
+    with tf.variable_scope('MLP'):
+      dep_mlp, head_mlp = nn_utils.MLP(inputs, class_mlp_size + attn_mlp_size, n_splits=2,
+                           keep_prob=hparams.mlp_dropout)
+      dep_arc_mlp, dep_rel_mlp = dep_mlp[:, :, :attn_mlp_size], dep_mlp[:, :, attn_mlp_size:]
+      head_arc_mlp, head_rel_mlp = head_mlp[:, :, :attn_mlp_size], head_mlp[:, :, attn_mlp_size:]
+
+    with tf.variable_scope('Arcs'):
+      # batch_size x batch_seq_len x batch_seq_len
+      arc_logits = nn_utils.bilinear_classifier(dep_arc_mlp, head_arc_mlp, hparams.bilinear_dropout)
+
+    num_tokens = tf.reduce_sum(tokens_to_keep)
+
+    predictions = tf.argmax(arc_logits, -1)
+    probabilities = tf.nn.softmax(arc_logits)
+
+    # arc_logits = tf.Print(arc_logits, [arc_logits], 'parse_bilinear_arc_logit')
+    # targets = tf.Print(targets, [])
+    # targets = tf.Print(targets, [targets, tf.reduce_sum(targets)], 'parse_bilinear_targets, checking whether the target vector is passed correctly')
+
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=arc_logits, labels=targets)
+    # cross_entropy = tf.Print(cross_entropy, [cross_entropy], 'parse_ce_loss')
+    loss = tf.reduce_sum((cross_entropy * tokens_to_keep))/num_tokens
+    # loss = 0.
+    # loss = tf.zeros([])
+    # loss = tf.Print(loss, [loss], 'parse_bilinear')
+    output = {
+      'loss': loss,
+      'predictions': predictions,
+      'probabilities': probabilities,
+      'scores': arc_logits,
+      'dep_rel_mlp': dep_rel_mlp,
+      'head_rel_mlp': head_rel_mlp
+    }
+
+  return output
+
+
 
 def conditional_bilinear(mode, hparams, model_config, inputs, targets, num_labels, tokens_to_keep, transition_params,
                          dep_rel_mlp, head_rel_mlp, parse_preds_train, parse_preds_eval):

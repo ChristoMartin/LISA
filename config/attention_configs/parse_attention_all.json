@@ -170,7 +170,8 @@
               "parse_stanford_sr": "one_hot",
               "parse_bert_biaffine": "one_hot",
               "parse_bert_benepar": "one_hot"
-            }
+            },
+            "sentence_feature": true
           },
           "eval_attention_aggregation": {
             "feature": {
@@ -181,7 +182,8 @@
               "parse_stanford_sr": "one_hot",
               "parse_bert_biaffine": "one_hot",
               "parse_bert_benepar": "one_hot"
-            }
+            },
+            "sentence_feature": true
           }
         }
       }
