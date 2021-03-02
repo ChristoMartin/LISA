@@ -45,8 +45,12 @@ arg_parser.add_argument('--attention_configs',
 
 arg_parser.add_argument('--ensemble', dest='ensemble', action='store_true',
                         help='Whether to ensemble models in save dir.')
-arg_parser.add_argument('--okazaki_discounting', type=bool, default=False,
+arg_parser.add_argument('--okazaki_discounting', dest='okazaki_discounting', action='store_true',
                         help='whether to use okazaki style of discounting method')
+arg_parser.add_argument('--output_attention_weight', dest='output_attention_weight', action='store_true',
+                        help='whether to print out attention weight')
+
+
 
 arg_parser.set_defaults(debug=False, ensemble=False)
 

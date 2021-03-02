@@ -45,9 +45,10 @@ arg_parser.add_argument('--best_eval_key', required=True, type=str,
                         help='Key corresponding to the evaluation to be used for determining early stopping.')
 arg_parser.add_argument('--early_stopping', type=bool, default=False,
                         help='whether to use early stopping for training -> may lead to unmature stopping')
-arg_parser.add_argument('--okazaki_discounting', type=bool, default=False,
+arg_parser.add_argument('--okazaki_discounting', dest='okazaki_discounting', action='store_true',
                         help='whether to use okazaki style of discounting method')
-
+arg_parser.add_argument('--output_attention_weight', dest='output_attention_weight', action='store_true',
+                        help='whether to print out attention weight')
 arg_parser.set_defaults(debug=False, num_gpus=1, keep_k_best_models=1)
 
 args, leftovers = arg_parser.parse_known_args()

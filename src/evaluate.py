@@ -37,6 +37,12 @@ arg_parser.add_argument('--attention_configs',
 arg_parser.add_argument('--combine_test_files', action='store_true',
                         help='Whether to combine list of test files into a single score.')
 
+arg_parser.add_argument('--okazaki_discounting', dest='okazaki_discounting', action='store_true',
+                        help='whether to use okazaki style of discounting method')
+arg_parser.add_argument('--output_attention_weight', dest='output_attention_weight', action='store_true',
+                        help='whether to print out attention weight')
+
+
 arg_parser.set_defaults(debug=False)
 arg_parser.set_defaults(combine_test_files=False)
 

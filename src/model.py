@@ -426,7 +426,7 @@ class LISAModel:
                                           training_hooks=[logging_hook, summary_hook], export_outputs=export_outputs, scaffold=scaffold if hparams.cwr!='None' else None)
         elif mode == tf.estimator.ModeKeys.EVAL:
           return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, train_op, eval_metric_ops,
-                                            export_outputs=export_outputs, scaffold=scaffold if hparams.cwr!='None' else None)
+                                            training_hooks=[logging_hook], export_outputs=export_outputs, scaffold=scaffold if hparams.cwr!='None' else None)
         elif mode == tf.estimator.ModeKeys.PREDICT:
           return tf.estimator.EstimatorSpec(mode, flat_predictions, loss, tf.no_op(), eval_metric_ops,
                                             export_outputs=export_outputs,

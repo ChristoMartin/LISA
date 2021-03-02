@@ -77,7 +77,7 @@ class BestCheckpointCopier(tf.estimator.Exporter):
 		if not os.path.exists(desination_dir):
 			checkpoint_asset = os.path.join(checkpoint.dir, 'assets.extra')
 			self._log('copying asset {} to {}'.format(checkpoint_asset, desination_dir))
-			shutil.copytree(checkpoint_asset, desination_dir, symlinks=True)
+			shutil.copytree(checkpoint_asset, desination_dir)
 
 
 	def _log(self, statement):

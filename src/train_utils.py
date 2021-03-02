@@ -25,6 +25,9 @@ def load_hparams(args, model_config):
   if args.okazaki_discounting:
     hparams.set_hparam('special_attention_mode', 'okazaki_discounting')
 
+  if args.output_attention_weight:
+    hparams.set_hparam('output_attention_weight', True)
+
   # Override those with command line hyperparams
   if args.hparams:
     hparams.parse(args.hparams)
