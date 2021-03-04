@@ -10,26 +10,36 @@ def graph_aggregation(dep_graph_list):
   return aggregated_graph
 
 
-def graph_aggregation_softmax_done(dep_graph_list):
+def graph_aggregation_softmax_done(dep_graph_list, parser_keep_rate = 0.9):
   num_dep_grap = dep_graph_list.get_shape()[:1]
   with tf.variable_scope("aggregation_weight"):
     weight = tf.get_variable("weight", shape=num_dep_grap)
-    aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(tf.nn.softmax(weight), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+    aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(tf.nn.dropout(tf.nn.softmax(weight), keep_prob=parser_keep_rate), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
     return aggregated_graph, tf.nn.softmax(weight)
 
-def graph_mean_aggregation(dep_graph_list):
+def graph_mean_aggregation(dep_graph_list, parser_keep_rate = 0.9):
+  num_dep_grap = dep_graph_list.get_shape()[:1]
   with tf.variable_scope("aggregation_weight"):
-    aggregated_graph = tf.nn.softmax(tf.math.reduce_sum(dep_graph_list, axis=0), dim=-1)
+    # Be careful as it'd break previous checkpoints
+    weight = tf.constant([1.] * num_dep_grap[0])
+    if num_dep_grap[0]> 1:
+      aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(
+      tf.nn.dropout(tf.nn.softmax(weight), keep_prob=parser_keep_rate), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+    else:
+      aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(
+        tf.nn.softmax(weight), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+
+    #aggregated_graph = tf.nn.softmax(tf.math.reduce_sum(dep_graph_list, axis=0), dim=-1)
   return aggregated_graph
 
-def graph_mlp_aggregation(dep_graph_list, v, mlp_dropout, projection_dim):
+def graph_mlp_aggregation(dep_graph_list, v, mlp_dropout, projection_dim, parser_dkeep_rate=0.9):
   num_dep_grap = dep_graph_list.get_shape()[:1]
   with tf.variable_scope('MLP'):
     mlp = MLP(v, projection_dim, keep_prob=mlp_dropout, n_splits=1)
   with tf.variable_scope('Classifier'):
     logits = MLP(mlp, num_dep_grap[0], keep_prob=mlp_dropout, n_splits=1)
   aggregated_graph = tf.math.reduce_sum(
-      tf.nn.softmax(dep_graph_list, dim=-1) * tf.nn.softmax(tf.transpose(logits))[:, :, tf.newaxis, tf.newaxis],
+      tf.nn.softmax(dep_graph_list, dim=-1) * tf.nn.dropout(tf.nn.softmax(tf.transpose(logits)), keep_prob=parser_dkeep_rate)[:, :, tf.newaxis, tf.newaxis],
       axis=0)
   return aggregated_graph, tf.nn.softmax(logits)
 

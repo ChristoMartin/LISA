@@ -1,7 +1,7 @@
 {
   "internal_parse_attention": {
     "attention_fns": {
-      "parse_gold": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -41,6 +41,150 @@
       }
     }
   },
+  "external_parse_attention_linear_aggregation_dep_noncwr": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_linear_aggregation_dep_crf&biaffine": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_linear_aggregation_dep_crf": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_linear_aggregation_dep_all": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mlp_linear_aggregation_dep_all": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation_mlp",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            },
+            "sentence_feature": true
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            },
+            "sentence_feature": true
+          }
+        }
+      }
+    }
+  },
   "external_parse_attention_mlp_linear_aggregation_dep_cwr": {
     "attention_fns": {
       "parse_dep_cwrs": {
@@ -65,35 +209,7 @@
       }
     }
   },
-  "external_parse_attention_linear_aggregation_dep": {
-    "attention_fns": {
-      "parse_dep": {
-        "name": "linear_aggregation",
-        "length": 1,
-        "params": {
-          "train_attention_aggregation": {
-            "feature": {
-              "parse_biaffine": "one_hot",
-              "parse_crf": "one_hot",
-              "parse_crf2o": "one_hot",
-              "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "one_hot"
-            }
-          },
-          "eval_attention_aggregation": {
-            "feature": {
-              "parse_biaffine": "one_hot",
-              "parse_crf": "one_hot",
-              "parse_crf2o": "one_hot",
-              "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "one_hot"
-            }
-          }
-        }
-      }
-    }
-  },
-  "external_parse_attention_mlp_linear_aggregation_dep": {
+  "external_parse_attention_mlp_linear_aggregation_dep_noncwr": {
     "attention_fns": {
       "parse_dep": {
         "name": "linear_aggregation_mlp",
@@ -123,7 +239,7 @@
       }
     }
   },
-  "external_parse_attention_linear_aggregation_dep_allparsers": {
+  "external_parse_attention_mlp_linear_aggregation_dep_crf&biaffine": {
     "attention_fns": {
       "parse_dep": {
         "name": "linear_aggregation",
@@ -134,42 +250,7 @@
               "parse_biaffine": "one_hot",
               "parse_crf": "one_hot",
               "parse_crf2o": "one_hot",
-              "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "one_hot",
-              "parse_bert_biaffine": "one_hot",
-              "parse_bert_benepar": "one_hot"
-            }
-          },
-          "eval_attention_aggregation": {
-            "feature": {
-              "parse_biaffine": "one_hot",
-              "parse_crf": "one_hot",
-              "parse_crf2o": "one_hot",
-              "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "one_hot",
-              "parse_bert_biaffine": "one_hot",
-              "parse_bert_benepar": "one_hot"
-            }
-          }
-        }
-      }
-    }
-  },
-  "external_parse_attention_mlp_linear_aggregation_dep_allparsers": {
-    "attention_fns": {
-      "parse_dep": {
-        "name": "linear_aggregation_mlp",
-        "length": 1,
-        "params": {
-          "train_attention_aggregation": {
-            "feature": {
-              "parse_biaffine": "one_hot",
-              "parse_crf": "one_hot",
-              "parse_crf2o": "one_hot",
-              "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "one_hot",
-              "parse_bert_biaffine": "one_hot",
-              "parse_bert_benepar": "one_hot"
+              "parse_crfnp": "one_hot"
             },
             "sentence_feature": true
           },
@@ -178,10 +259,33 @@
               "parse_biaffine": "one_hot",
               "parse_crf": "one_hot",
               "parse_crf2o": "one_hot",
-              "parse_crfnp": "one_hot",
-              "parse_stanford_sr": "one_hot",
-              "parse_bert_biaffine": "one_hot",
-              "parse_bert_benepar": "one_hot"
+              "parse_crfnp": "one_hot"
+            },
+            "sentence_feature": true
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mlp_linear_aggregation_dep_crf": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "linear_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            },
+            "sentence_feature": true
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
             },
             "sentence_feature": true
           }
@@ -191,7 +295,7 @@
   },
   "external_parse_attention_injection_biaffine": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -211,7 +315,7 @@
   },
   "external_parse_attention_injection_crf": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -231,7 +335,7 @@
   },
   "external_parse_attention_injection_crfnp": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -251,7 +355,7 @@
   },
   "external_parse_attention_injection_crf2o": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -271,7 +375,7 @@
   },
   "external_parse_attention_injection_stanford_sr": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -291,7 +395,7 @@
   },
   "external_parse_attention_injection_bert_biaffine": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -311,7 +415,7 @@
   },
   "external_parse_attention_injection_benepar": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {
@@ -331,7 +435,7 @@
   },
   "parse_attention_injection_gold": {
     "attention_fns": {
-      "parse_dep_cwrs": {
+      "parse_dep": {
         "name": "mean_aggregation",
         "length": 1,
         "params": {

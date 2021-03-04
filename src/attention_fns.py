@@ -17,25 +17,20 @@ def copy_from_predicted(mode, train_attention_to_copy, eval_attention_to_copy):
 
   return tf.cast(tf.nn.softmax(attention_to_copy, dim=-1), tf.float32), None
 
-def linear_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
+def linear_aggregation(mode, train_attention_aggregation, eval_attention_aggregation, parser_dropout=0.9):
   #suppose attention_to_aggregated is in list
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
-  # attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
-  #                                off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
-  attention_to_aggregated, weight = nn_utils.graph_aggregation_softmax_done(attention_to_aggregated)
+  attention_to_aggregated, weight = nn_utils.graph_aggregation_softmax_done(attention_to_aggregated, parser_dropout)
   return tf.cast(attention_to_aggregated, tf.float32), weight
-def mean_aggregation(mode, train_attention_aggregation, eval_attention_aggregation):
+def mean_aggregation(mode, train_attention_aggregation, eval_attention_aggregation, parser_dropout=0.9):
   #suppose attention_to_aggregated is in list
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
-  # attention_to_aggregated = tf.map_fn(lambda src: tf.one_hot(src, tf.shape(src)[-1], on_value=constants.VERY_LARGE,
-  #                                off_value=constants.VERY_SMALL), elems=attention_to_aggregated, dtype=tf.float32)
-  attention_to_aggregated = nn_utils.graph_mean_aggregation(attention_to_aggregated)
+  attention_to_aggregated = nn_utils.graph_mean_aggregation(attention_to_aggregated, parser_dropout)
   return tf.cast(attention_to_aggregated, tf.float32), None
 
-def linear_aggregation_by_mlp(mode, train_attention_aggregation, eval_attention_aggregation, v, mlp_dropout, projection_dim):
-  # v is the sentence-level feature, can be either mean(we), mean(latest self-attention layer output)...
+def linear_aggregation_by_mlp(mode, train_attention_aggregation, eval_attention_aggregation, v, mlp_dropout, projection_dim, parser_dropout=0.9):
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
-  aggregated_attention, weight = nn_utils.graph_mlp_aggregation(attention_to_aggregated, v, mlp_dropout, projection_dim)
+  aggregated_attention, weight = nn_utils.graph_mlp_aggregation(attention_to_aggregated, v, mlp_dropout, projection_dim, parser_dropout)
 
   # raise NotImplementedError
   return tf.cast(aggregated_attention, tf.float32), weight
@@ -80,6 +75,7 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         print('Undefined attention source format')
         raise NotImplementedError
       # todo sentence feature may be invoked by non-aggregation attentions
+      params['parser_dropout'] = hparams.parser_dropout
       if 'sentence_feature' in param_values:
         params['mlp_dropout'] = hparams['mlp_dropout']
         params['projection_dim'] = model_config['linear_aggregation_scorer_mlp_size']
@@ -93,6 +89,7 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         params[param_name] = tf.stack(outputs, axis=0)
       else:
         raise NotImplementedError
+      params['parser_dropout'] = hparams.parser_dropout
     elif 'feature' in param_values:
       if isinstance(param_values['feature'], dict):
         attn_constraints = []
@@ -109,6 +106,7 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         print('Undefined attention source format')
         raise NotImplementedError
       # todo sentence feature may be invoked by non-aggregation attentions
+      params['parser_dropout'] = hparams.parser_dropout
       if 'sentence_feature' in param_values:
         params['mlp_dropout'] = hparams.mlp_dropout
         params['projection_dim'] = model_config['linear_aggregation_scorer_mlp_size']

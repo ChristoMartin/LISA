@@ -28,6 +28,8 @@ def load_hparams(args, model_config):
   if args.output_attention_weight:
     hparams.set_hparam('output_attention_weight', True)
 
+  if args.parser_dropout:
+    hparams.set_hparam('parser_dropout', 0.9)
   # Override those with command line hyperparams
   if args.hparams:
     hparams.parse(args.hparams)

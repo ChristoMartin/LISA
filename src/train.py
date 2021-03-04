@@ -43,12 +43,14 @@ arg_parser.add_argument('--keep_k_best_models', type=int,
                         help='Number of best models to keep.')
 arg_parser.add_argument('--best_eval_key', required=True, type=str,
                         help='Key corresponding to the evaluation to be used for determining early stopping.')
-arg_parser.add_argument('--early_stopping', type=bool, default=False,
+arg_parser.add_argument('--early_stopping', type=bool, default=True,
                         help='whether to use early stopping for training -> may lead to unmature stopping')
 arg_parser.add_argument('--okazaki_discounting', dest='okazaki_discounting', action='store_true',
                         help='whether to use okazaki style of discounting method')
 arg_parser.add_argument('--output_attention_weight', dest='output_attention_weight', action='store_true',
                         help='whether to print out attention weight')
+arg_parser.add_argument('--parser_dropout', dest='parser_dropout', action='store_true',
+                        help='whether to add a dropout layer for parser aggregation')
 arg_parser.set_defaults(debug=False, num_gpus=1, keep_k_best_models=1)
 
 args, leftovers = arg_parser.parse_known_args()
@@ -144,7 +146,7 @@ estimator = tf.estimator.Estimator(model_fn=model.model_fn, model_dir=args.save_
 # Set up early stopping -- always keep the model with the best F1
 export_assets = {"%s.txt" % vocab_name: "%s/assets.extra/%s.txt" % (args.save_dir, vocab_name)
                  for vocab_name in vocab.vocab_names_sizes.keys()}
-srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=50000,  min_steps=150000)
+srl_early_stop_hook = tf.contrib.estimator.stop_if_no_increase_hook(estimator, 'srl_f1', max_steps_without_increase=40000,  min_steps=200000)
 tf.logging.log(tf.logging.INFO, "Exporting assets: %s" % str(export_assets))
 save_best_exporter = tf.estimator.BestExporter(compare_fn=partial(train_utils.best_model_compare_fn,
                                                                   key=args.best_eval_key),

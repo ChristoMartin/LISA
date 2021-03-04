@@ -127,12 +127,6 @@ class LISAModel:
                                tf.ones([batch_size, batch_seq_len, last_dim], dtype=tf.int32))
           these_labels_masked = tf.multiply(these_labels_masked, this_mask)
         else:
-          # last_dim = tf.shape(these_labels)[2]
-          # this_mask = tf.where(tf.equal(these_labels_masked_print, constants.PAD_VALUE),
-          #                      tf.zeros([batch_size, batch_seq_len, last_dim], dtype=tf.int32),
-          #                      tf.ones([batch_size, batch_seq_len, last_dim], dtype=tf.int32))
-          # these_labels_masked = tf.multiply(these_labels_masked_print, this_mask)
-          # print("debug <these labels masked>: ", these_labels_masked_print)
           these_labels_masked = tf.squeeze(these_labels_masked, -1, name='these_labels_masked_squeezing')
           # these_labels_masked = tf.Print(these_labels_masked, [tf.shape(these_labels_masked), these_labels_masked], 'thses labels masked after squeezed')
         labels[l] = these_labels_masked
@@ -249,6 +243,8 @@ class LISAModel:
                   # print("debug <attn_fn, attn_fn_map>: ", attn_fn, ' ', attn_fn_map)
                   if 'length' in attn_fn_map.keys() or hparams.use_hparams_headcounts:
                     hc = hparams.__dict__['{}_headcount'.format(attn_fn)] if hparams.use_hparams_headcounts else  attn_fn_map['length']
+                    tf.logging.log(tf.logging.INFO, "Using {} attention mode with {} heads".format(
+                      hparams.__dict__['{}_injection'.format(attn_fn)], hc))
                     for idx in range(hc): # To make sure that the three special attentions are different
                       with tf.variable_scope('{}_{}'.format(attn_fn_map['name'], idx)):
                         attention_fn_params = attention_fns.get_params(mode, attn_fn_map, predictions, feats, labels, hparams, self.model_config)

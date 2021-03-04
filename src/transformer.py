@@ -272,9 +272,9 @@ def okazaki_discounting_dot_product_attention(q, k, v,
       discounters = tf.stack(discounters, 1)
       # discounted_logits = tf.concat([logits[:, :-num_attn_to_discount], logits[:, -num_attn_to_discount:] * discounters], axis=1)
       if num_attn_to_inject == 0:
-        discounted_weights = tf.nn.softmax(logits[:, -num_attn_to_discount:] * discounters, -1)
+        discounted_weights = [tf.nn.softmax(logits[:, -num_attn_to_discount:] * discounters, -1)]
       else:
-        discounted_weights = tf.nn.softmax(logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject] * discounters, -1)
+        discounted_weights = [tf.nn.softmax(logits[:, -num_attn_to_discount-num_attn_to_inject:-num_attn_to_inject] * discounters, -1)]
     else:
       discounted_weights = []
     if injections:

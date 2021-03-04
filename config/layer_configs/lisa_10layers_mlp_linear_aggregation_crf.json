@@ -1,0 +1,5 @@
+{
+  "joint_pos_predicate": 2,
+  "external_parse_attention_mlp_linear_aggregation_dep_crf": 5,
+  "srl": 9
+}

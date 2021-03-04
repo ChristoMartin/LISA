@@ -31,6 +31,7 @@ hparams = {
   'average_norms': False,
   'input_dropout': 1.0,
   'bilinear_dropout': 1.0,
+  'parser_dropout': 1.0,
   'mlp_dropout': 1.0,
   'attn_dropout': 1.0,
   'ff_dropout': 1.0,
