@@ -11,8 +11,8 @@
 export PATH=$PBS_O_PATH:$PATH
 
 cd $PBS_O_WORKDIR
-SAVEDIR=.model/mlp-la/injection/glove-dep/conll05-all-dropout
-CONF=config/mlp-la/injection/glove-dep/conll05-all.conf
+SAVEDIR=.model/la/injection/glove-dep/conll05-all-dropout
+CONF=config/la/injection/glove-dep/conll05-all.conf
 SINGULARITY_IMG=/lustre/gk77/k77015/.Singularity/imgs/LISA.simg
 
 module add cuda9/9.0.176-cuDNN7.1.4 singularity/2.5.1
@@ -22,7 +22,7 @@ CUDA_VISIBLE_DEVICES=0 singularity exec --nv $SINGULARITY_IMG bin/train.sh $CONF
 
 {
 sleep 600
-CUDA_VISIBLE_DEVICES=1 singularity exec --nv $SINGULARITY_IMG bin/train.sh $CONF --save_dir $SAVEDIR/run-2 --num_gpus 1 --parser_dropout  &> $SAVEDIR/run-2/train.log
+CUDA_VISIBLE_DEVICES=1 singularity exec --nv $SINGULARITY_IMG bin/train.sh $CONF --save_dir $SAVEDIR/run-2 --num_gpus 1 --parser_dropout &> $SAVEDIR/run-2/train.log
 } &
 wait
 

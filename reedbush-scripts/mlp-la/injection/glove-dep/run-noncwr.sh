@@ -3,7 +3,7 @@
 #PBS -l select=1
 #PBS -W group_list=gk77
 #PBS -l walltime=18:00:00
-#PBS -N LA-HI-NONCWR
+#PBS -N MLP-LA-HI-NONCWR
 #PBS -j oe
 #PBS -M christopher@orudo.cc
 #PBS -m abe

@@ -30,6 +30,10 @@ def load_hparams(args, model_config):
 
   if args.parser_dropout:
     hparams.set_hparam('parser_dropout', 0.9)
+
+  if args.aggregator_mlp_bn:
+    hparams.set_hparam('aggregator_mlp_bn', True)
+
   # Override those with command line hyperparams
   if args.hparams:
     hparams.parse(args.hparams)

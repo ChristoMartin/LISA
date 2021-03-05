@@ -3,7 +3,7 @@
 #PBS -l select=1
 #PBS -W group_list=gk77
 #PBS -l walltime=18:00:00
-#PBS -N LA-HI-NONCWR-DROPOUT
+#PBS -N MLP-LA-HI-CNB-DROPOUT
 #PBS -j oe
 #PBS -M christopher@orudo.cc
 #PBS -m abe
@@ -11,8 +11,8 @@
 export PATH=$PBS_O_PATH:$PATH
 
 cd $PBS_O_WORKDIR
-SAVEDIR=.model/mlp-la/injection/glove-dep/conll05-noncwr-dropout
-CONF=config/mlp-la/injection/glove-dep/conll05-noncwr.conf
+SAVEDIR=.model/mlp-la/injection/glove-dep/conll05-crfnbiaffine-dropout
+CONF=config/mlp-la/injection/glove-dep/conll05-crfnbiaffine.conf
 SINGULARITY_IMG=/lustre/gk77/k77015/.Singularity/imgs/LISA.simg
 
 module add cuda9/9.0.176-cuDNN7.1.4 singularity/2.5.1

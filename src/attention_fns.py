@@ -28,9 +28,9 @@ def mean_aggregation(mode, train_attention_aggregation, eval_attention_aggregati
   attention_to_aggregated = nn_utils.graph_mean_aggregation(attention_to_aggregated, parser_dropout)
   return tf.cast(attention_to_aggregated, tf.float32), None
 
-def linear_aggregation_by_mlp(mode, train_attention_aggregation, eval_attention_aggregation, v, mlp_dropout, projection_dim, parser_dropout=0.9):
+def linear_aggregation_by_mlp(mode, train_attention_aggregation, eval_attention_aggregation, v, mlp_dropout, projection_dim, parser_dropout=0.9, batch_norm=False):
   attention_to_aggregated= train_attention_aggregation if mode == tf.estimator.ModeKeys.TRAIN else eval_attention_aggregation
-  aggregated_attention, weight = nn_utils.graph_mlp_aggregation(attention_to_aggregated, v, mlp_dropout, projection_dim, parser_dropout)
+  aggregated_attention, weight = nn_utils.graph_mlp_aggregation(attention_to_aggregated, v, mlp_dropout, projection_dim, parser_dropout, batch_norm)
 
   # raise NotImplementedError
   return tf.cast(aggregated_attention, tf.float32), weight
@@ -65,10 +65,10 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         for src, transformation_name in param_values['label'].items():
           attn_map = transformation_fn.dispatch(transformation_name)(**transformation_fn.get_params(labels[src], transformation_name, src))
           attn_constraints += [attn_map]
-        params[param_name] = tf.stack(attn_constraints, axis=0)
+        params[param_name] = tf.stack(attn_constraints, axis=1)
         # params['num_dep_graphs']
       elif isinstance(param_values['label'], list): # only for compatability reason
-        params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=0)
+        params[param_name] = tf.stack([labels[src] for src in param_values['label']], axis=1)
       elif isinstance(param_values['label'], str): # only for compatability reason
         params[param_name] = labels[param_values['label']]
       else:
@@ -76,6 +76,8 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         raise NotImplementedError
       # todo sentence feature may be invoked by non-aggregation attentions
       params['parser_dropout'] = hparams.parser_dropout
+      if hparams.aggregator_mlp_bn:
+        params['batch_norm'] = True
       if 'sentence_feature' in param_values:
         params['mlp_dropout'] = hparams['mlp_dropout']
         params['projection_dim'] = model_config['linear_aggregation_scorer_mlp_size']
@@ -86,10 +88,12 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         for layer_name, output_name in param_values['output'].items():
           outputs_layer = train_outputs[layer_name]
           outputs += [outputs_layer[output_name]]
-        params[param_name] = tf.stack(outputs, axis=0)
+        params[param_name] = tf.stack(outputs, axis=1)
       else:
         raise NotImplementedError
       params['parser_dropout'] = hparams.parser_dropout
+      if hparams.aggregator_mlp_bn:
+        params['batch_norm'] = True
     elif 'feature' in param_values:
       if isinstance(param_values['feature'], dict):
         attn_constraints = []
@@ -97,9 +101,9 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
           attn_map = transformation_fn.dispatch(transformation_name)(
             **transformation_fn.get_params(features[src], transformation_name, src))
           attn_constraints += [attn_map]
-        params[param_name] = tf.stack(attn_constraints, axis=0)
+        params[param_name] = tf.stack(attn_constraints, axis=1)
       elif isinstance(param_values['feature'], list):  # only for compatability reason
-        params[param_name] = tf.stack([features[src] for src in param_values['feature']], axis=0)
+        params[param_name] = tf.stack([features[src] for src in param_values['feature']], axis=1)
       elif isinstance(param_values['feature'], str):  # only for compatability reason
         params[param_name] = features[param_values['label']]
       else:
@@ -107,6 +111,8 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         raise NotImplementedError
       # todo sentence feature may be invoked by non-aggregation attentions
       params['parser_dropout'] = hparams.parser_dropout
+      if hparams.aggregator_mlp_bn:
+        params['batch_norm'] = True
       if 'sentence_feature' in param_values:
         params['mlp_dropout'] = hparams.mlp_dropout
         params['projection_dim'] = model_config['linear_aggregation_scorer_mlp_size']

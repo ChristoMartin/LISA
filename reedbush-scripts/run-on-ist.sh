@@ -17,7 +17,7 @@ echo $JOB_NAME
 #cat ./$1 | grep -o "singularity exec .*" | sed 's/\/lustre\/gk77\/k77015\/.Singularity\/imgs\/LISA.simg/\/home\/u00222\/singularity\/images\/LISA.simg/' | while read line; do echo "-p p --gres=gpu:1 --mem=24GB" $line ; done | xargs -n 16 -I '{}' echo "srun {} guard"
 mkdir -p $SAVEDIR/run-1
 mkdir -p $SAVEDIR/run-2
-cat ./$1 | grep -o "singularity exec .*" |sed "s#\$CONF#$CONF#" | sed "s#\$SAVEDIR#$SAVEDIR#g" | sed "s#\$SINGULARITY_IMG#$SINGULARITY_IMAGE#" | while read line; do echo "-p $3 --gres=gpu:1 -J $JOB_NAME --time=1-06:00:00 --mem=24GB" $line ; done | xargs -n 16 -P 4 -L 1 -I '{}' bash -c "srun {}"
+cat ./$1 | grep -o "singularity exec .*" |sed "s#\$CONF#$CONF#" | sed "s#\$SAVEDIR#$SAVEDIR#g" | sed "s#\$SINGULARITY_IMG#$SINGULARITY_IMAGE#" | while read line; do echo "-p $3 --gres=gpu:1 -J $JOB_NAME --time=1-06:00:00  --cpus-per-task=8 --mem-per-cpu=4096MB " $line ; done |  xargs -n 16 -P 2 -L 1 -I '{}' bash -c "srun {}"
 #cat ./$1 | grep -o "singularity exec .*" | sed 's/\/lustre\/gk77\/k77015\/.Singularity\/imgs\/LISA.simg/\/home\/u00222\/singularity\/images\/LISA.simg/' | while read line; do echo "-p p --gres=gpu:1 --mem=24GB" $line ; done | xargs -n 16 -P 4 -L 1 srun
 
 #cat ./$1 | grep -o "singularity exec (.)*"

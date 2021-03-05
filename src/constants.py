@@ -21,7 +21,7 @@ hparams = {
   'epsilon': 1e-12,
   'use_nesterov': True,
   'batch_size': 5192,
-  'shuffle_buffer_multiplier': 10,
+  'shuffle_buffer_multiplier': 5,
   'eval_throttle_secs': 800,
   'eval_every_steps': 1000,
   'num_train_epochs': 100000,
@@ -50,7 +50,8 @@ hparams = {
   'use_hparams_headcounts': True,
   'parse_gold_injection': 'injection',
   'parse_dep_injection': 'injection',
-  'parse_dep_cwrs_injection': 'injection'
+  'parse_dep_cwrs_injection': 'injection',
+  'aggregator_mlp_bn': False
 
 }
 

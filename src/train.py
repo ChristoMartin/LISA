@@ -51,6 +51,8 @@ arg_parser.add_argument('--output_attention_weight', dest='output_attention_weig
                         help='whether to print out attention weight')
 arg_parser.add_argument('--parser_dropout', dest='parser_dropout', action='store_true',
                         help='whether to add a dropout layer for parser aggregation')
+arg_parser.add_argument('--aggregator_mlp_bn', dest='aggregator_mlp_bn', action='store_true',
+                        help='whether to use batch normalization on aggregator mlp')
 arg_parser.set_defaults(debug=False, num_gpus=1, keep_k_best_models=1)
 
 args, leftovers = arg_parser.parse_known_args()

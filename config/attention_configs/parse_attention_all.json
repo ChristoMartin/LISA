@@ -242,7 +242,7 @@
   "external_parse_attention_mlp_linear_aggregation_dep_crf&biaffine": {
     "attention_fns": {
       "parse_dep": {
-        "name": "linear_aggregation",
+        "name": "linear_aggregation_mlp",
         "length": 1,
         "params": {
           "train_attention_aggregation": {
@@ -270,7 +270,7 @@
   "external_parse_attention_mlp_linear_aggregation_dep_crf": {
     "attention_fns": {
       "parse_dep": {
-        "name": "linear_aggregation",
+        "name": "linear_aggregation_mlp",
         "length": 1,
         "params": {
           "train_attention_aggregation": {

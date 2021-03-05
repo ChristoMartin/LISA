@@ -3,44 +3,54 @@ import numpy as np
 
 
 def graph_aggregation(dep_graph_list):
-  num_dep_grap = dep_graph_list.get_shape()[:1]
+  num_dep_grap = dep_graph_list.get_shape()[1]
   with tf.variable_scope("aggregation_weight"):
-    weight = tf.get_variable("weight", shape=num_dep_grap)
-    aggregated_graph = tf.math.reduce_sum(dep_graph_list * tf.reshape(tf.nn.softmax(weight), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+    weight = tf.get_variable("weight", shape=[num_dep_grap])
+    aggregated_graph = tf.math.reduce_sum(dep_graph_list * tf.reshape(tf.nn.softmax(weight), shape=[1, num_dep_grap, 1, 1]), axis=1)
   return aggregated_graph
 
 
 def graph_aggregation_softmax_done(dep_graph_list, parser_keep_rate = 0.9):
-  num_dep_grap = dep_graph_list.get_shape()[:1]
+  num_dep_grap = dep_graph_list.get_shape()[1]
   with tf.variable_scope("aggregation_weight"):
-    weight = tf.get_variable("weight", shape=num_dep_grap)
-    aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(tf.nn.dropout(tf.nn.softmax(weight), keep_prob=parser_keep_rate), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+    weight = tf.get_variable("weight", shape=[num_dep_grap])
+    aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(tf.nn.dropout(tf.nn.softmax(weight), keep_prob=parser_keep_rate), shape=[1, num_dep_grap, 1, 1]), axis=1)
     return aggregated_graph, tf.nn.softmax(weight)
 
 def graph_mean_aggregation(dep_graph_list, parser_keep_rate = 0.9):
-  num_dep_grap = dep_graph_list.get_shape()[:1]
+  num_dep_grap = dep_graph_list.get_shape()[1]
   with tf.variable_scope("aggregation_weight"):
     # Be careful as it'd break previous checkpoints
-    weight = tf.constant([1.] * num_dep_grap[0])
-    if num_dep_grap[0]> 1:
+    weight = tf.constant([1.] * num_dep_grap)
+    if num_dep_grap> 1:
       aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(
-      tf.nn.dropout(tf.nn.softmax(weight), keep_prob=parser_keep_rate), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+      tf.nn.dropout(tf.nn.softmax(weight), keep_prob=parser_keep_rate), shape=[1, num_dep_grap, 1, 1]), axis=1)
     else:
       aggregated_graph = tf.math.reduce_sum(tf.nn.softmax(dep_graph_list, dim=-1) * tf.reshape(
-        tf.nn.softmax(weight), shape=[num_dep_grap[0], 1, 1, 1]), axis=0)
+        tf.nn.softmax(weight), shape=[1, num_dep_grap, 1, 1]), axis=1)
 
     #aggregated_graph = tf.nn.softmax(tf.math.reduce_sum(dep_graph_list, axis=0), dim=-1)
   return aggregated_graph
 
-def graph_mlp_aggregation(dep_graph_list, v, mlp_dropout, projection_dim, parser_dkeep_rate=0.9):
-  num_dep_grap = dep_graph_list.get_shape()[:1]
+
+def graph_mlp_aggregation(dep_graph_list, v, mlp_dropout, projection_dim, parser_dkeep_rate=0.9, batch_norm = False):
+  #graph
+  # dep_graph_list = tf.transpose(dep_graph_list, )
+  num_dep_grap = dep_graph_list.get_shape()[1]
   with tf.variable_scope('MLP'):
     mlp = MLP(v, projection_dim, keep_prob=mlp_dropout, n_splits=1)
+  if batch_norm:
+    tf.logging.log(tf.logging.INFO, "Using batch normalization @ {}".format(tf.get_variable_scope().name))
+    mean, variance = tf.nn.moments(mlp, [-1], keep_dims=True)
+    with tf.variable_scope('BatchNorm'):
+      beta = tf.get_variable('offset', [1, projection_dim])
+      gamma = tf.get_variable('scale', [1])
+    mlp = tf.nn.batch_normalization(mlp, mean, variance, offset=beta, scale=gamma, variance_epsilon=1e-6)
   with tf.variable_scope('Classifier'):
-    logits = MLP(mlp, num_dep_grap[0], keep_prob=mlp_dropout, n_splits=1)
+    logits = MLP(mlp, num_dep_grap, keep_prob=mlp_dropout, n_splits=1)
   aggregated_graph = tf.math.reduce_sum(
-      tf.nn.softmax(dep_graph_list, dim=-1) * tf.nn.dropout(tf.nn.softmax(tf.transpose(logits)), keep_prob=parser_dkeep_rate)[:, :, tf.newaxis, tf.newaxis],
-      axis=0)
+      tf.nn.softmax(dep_graph_list, dim=-1) * tf.nn.dropout(tf.nn.softmax(logits), keep_prob=parser_dkeep_rate)[:, :, tf.newaxis, tf.newaxis],
+      axis=1)
   return aggregated_graph, tf.nn.softmax(logits)
 
 def leaky_relu(x): return tf.maximum(0.1 * x, x)
