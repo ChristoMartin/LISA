@@ -354,7 +354,7 @@ def conll_srl_eval_with_transformation(srl_predictions, predicate_predictions, w
   # write predicted labels
   write_srl_eval(pred_srl_eval_file, words, predicate_predictions, sent_lens, srl_predictions)
 
-  subprocess.run(["python", "src/make_srl_transformation.py", pred_srl_eval_file, gold_srl_eval_file])
+  subprocess.run(["python", "bin/make_srl_transformation.py", pred_srl_eval_file, gold_srl_eval_file])
 
   transformation_count_map = {'original': run_eval_script(pred_srl_eval_file, gold_srl_eval_file)}
 

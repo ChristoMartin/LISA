@@ -24,9 +24,9 @@ class Argument:
   def _check_overlap(self, rarg):
     if (self.end_idx<rarg.start_idx) or\
       (self.start_idx>rarg.end_idx):
-      return True
-    else:
       return False
+    else:
+      return True
 
 
     # if (self.end_idx >= rarg.start_idx and self.start_idx <= rarg.end_idx and ) or \
@@ -173,7 +173,8 @@ def move_arg(pred_args, gold_args):
   # print(pred_args)
   # print(gold_args)
   uniqc_gold_args, _ = get_unique_core_arguments_as_gold(gold_args, gold_args)
-  uniqc_pred_args, p_others = get_unique_core_arguments_as_gold(pred_args, uniqc_gold_args)
+  uniqc_gold_args_not_overlapping = [garg for garg in uniqc_gold_args if not any([garg._check_overlap(parg) for parg in pred_args])]
+  uniqc_pred_args, p_others = get_unique_core_arguments_as_gold(pred_args, uniqc_gold_args_not_overlapping)
   tag_uniqc_gold_arg_map = {arg.tag: arg for arg in uniqc_gold_args}
   # print("<uniq core argument>: ", uniqc_pred_args)
   # print("<gold uniq core argument>: ", uniqc_gold_args)
@@ -182,18 +183,18 @@ def move_arg(pred_args, gold_args):
     # if arg.tag in tag_uniqc_gold_arg_map.keys():
     arg.start_idx = tag_uniqc_gold_arg_map[arg.tag].start_idx
     arg.end_idx = tag_uniqc_gold_arg_map[arg.tag].end_idx
-    for other_arg in p_others:
-      if arg.start_idx <= other_arg.start_idx and arg.end_idx >= other_arg.end_idx:
-        pred_args.remove(other_arg)
-      elif arg.start_idx > other_arg.start_idx and arg.end_idx < other_arg.end_idx:
-        pred_args.append(Argument(other_arg.tag, arg.end_idx + 1, other_arg.end_idx))
-        other_arg.end_idx = arg.start_idx - 1
-      elif arg.start_idx <= other_arg.start_idx and arg.end_idx < other_arg.end_idx and arg.end_idx>=other_arg.start_idx:
-        other_arg.start_idx = arg.end_idx + 1
-      elif arg.start_idx > other_arg.start_idx and arg.end_idx >= other_arg.end_idx and arg.start_idx<=other_arg.end_idx:
-        other_arg.end_idx = arg.start_idx - 1
-      else:
-        continue
+    # for other_arg in p_others:
+    #   if arg.start_idx <= other_arg.start_idx and arg.end_idx >= other_arg.end_idx:
+    #     pred_args.remove(other_arg)
+    #   elif arg.start_idx > other_arg.start_idx and arg.end_idx < other_arg.end_idx:
+    #     pred_args.append(Argument(other_arg.tag, arg.end_idx + 1, other_arg.end_idx))
+    #     other_arg.end_idx = arg.start_idx - 1
+    #   elif arg.start_idx <= other_arg.start_idx and arg.end_idx < other_arg.end_idx and arg.end_idx>=other_arg.start_idx:
+    #     other_arg.start_idx = arg.end_idx + 1
+    #   elif arg.start_idx > other_arg.start_idx and arg.end_idx >= other_arg.end_idx and arg.start_idx<=other_arg.end_idx:
+    #     other_arg.end_idx = arg.start_idx - 1
+    #   else:
+    #     continue
 
 
   return pred_args
@@ -201,19 +202,34 @@ def move_arg(pred_args, gold_args):
 
 # %%
 
+# def merge_spans(pred_args, gold_args):
+#   p_end_idx_arg_map = {arg.end_idx: arg for arg in pred_args}
+#   p_start_idx_arg_map = {arg.start_idx: arg for arg in pred_args}
+#   g_tag_arg_map = {arg.tag: arg for arg in gold_args}
+#   for eidx, arg in p_end_idx_arg_map.items():
+#     if eidx + 2 in p_start_idx_arg_map.keys():
+#       pls = p_start_idx_arg_map[eidx + 2]
+#       if arg.tag in g_tag_arg_map.keys(): #pls.tag == arg.tag and
+#         if (arg.start_idx == g_tag_arg_map[arg.tag].start_idx \
+#           and pls.end_idx == g_tag_arg_map[arg.tag].end_idx):
+#           pred_args.append(Argument(arg.tag, arg.start_idx, g_tag_arg_map[arg.tag].end_idx))
+#           pred_args.remove(arg)
+#           pred_args.remove(p_start_idx_arg_map[eidx + 2])
+#   return pred_args
+
+
 def merge_spans(pred_args, gold_args):
   p_end_idx_arg_map = {arg.end_idx: arg for arg in pred_args}
   p_start_idx_arg_map = {arg.start_idx: arg for arg in pred_args}
-  g_tag_arg_map = {arg.tag: arg for arg in gold_args}
   for eidx, arg in p_end_idx_arg_map.items():
-    if eidx + 2 in p_start_idx_arg_map.keys():
-      pls = p_start_idx_arg_map[eidx + 2]
-      if pls.tag == arg.tag and arg.tag in g_tag_arg_map.keys():
-        if (arg.start_idx == g_tag_arg_map[arg.tag].start_idx \
-          and pls.end_idx == g_tag_arg_map[arg.tag].end_idx):
-          pred_args.append(Argument(arg.tag, arg.start_idx, g_tag_arg_map[arg.tag].end_idx))
-          pred_args.remove(arg)
-          pred_args.remove(p_start_idx_arg_map[eidx + 2])
+    for len in range(2):
+      if eidx + len+1 in p_start_idx_arg_map.keys():
+        pls = p_start_idx_arg_map[eidx + len+1]
+        for garg in gold_args:
+          if arg.start_idx == garg.start_idx and pls.end_idx == garg.end_idx:
+            pred_args.append(Argument(garg.tag, garg.start_idx, garg.end_idx))
+            pred_args.remove(arg)
+            pred_args.remove(p_start_idx_arg_map[eidx + len+1])
   return pred_args
 
 
@@ -222,16 +238,16 @@ def merge_spans(pred_args, gold_args):
 def split_spans(pred_args, gold_args):
   g_end_idx_arg_map = {arg.end_idx: arg for arg in gold_args}
   g_start_idx_arg_map = {arg.start_idx: arg for arg in gold_args}
-  p_tag_arg_map = {arg.tag: arg for arg in pred_args}
+  # p_tag_arg_map = {arg.tag: arg for arg in pred_args}
   for eidx, arg in g_end_idx_arg_map.items():
-    if eidx + 2 in g_start_idx_arg_map.keys():
-      gls = g_start_idx_arg_map[eidx + 2]
-      if gls.tag == arg.tag and arg.tag in p_tag_arg_map.keys():
-        if arg.start_idx == p_tag_arg_map[arg.tag].start_idx \
-          and gls.end_idx == p_tag_arg_map[arg.tag].end_idx:
-          pred_args.append(Argument(arg.tag, arg.start_idx, arg.end_idx))
-          pred_args.append(Argument(gls.tag, gls.start_idx, gls.end_idx))
-          pred_args.remove(p_tag_arg_map[arg.tag])
+    for len in range(2):
+      if eidx + len+1 in g_start_idx_arg_map.keys():
+        gls = g_start_idx_arg_map[eidx + len+1]
+        for parg in pred_args:
+          if arg.start_idx == parg.start_idx and gls.end_idx == parg.end_idx:
+            pred_args.append(Argument(arg.tag, arg.start_idx, arg.end_idx))
+            pred_args.append(Argument(gls.tag, gls.start_idx, gls.end_idx))
+            pred_args.remove(parg)
   return pred_args
 
 
@@ -240,41 +256,35 @@ def split_spans(pred_args, gold_args):
 def fix_boundary(pred_args, gold_args):
   for parg in pred_args:
     for garg in gold_args:
-      # print(parg, garg)
+
       if parg.tag == garg.tag and parg._check_overlap(garg):
+        # print(parg, garg)
+
         parg.start_idx = garg.start_idx
         parg.end_idx = garg.end_idx
+        removing_buffer = []
+        # print(pred_args)
         for other_arg in pred_args:
-          if other_arg == parg:
-            continue
-          if parg.start_idx<=other_arg.start_idx and parg.end_idx>=other_arg.end_idx:
-            pred_args.remove(other_arg)
-          elif parg.start_idx>other_arg.start_idx and parg.end_idx<other_arg.end_idx:
-            pred_args.append(Argument(other_arg.tag, parg.end_idx+1,other_arg.end_idx))
-            other_arg.end_idx = parg.start_idx-1
-          elif parg.start_idx<=other_arg.start_idx and parg.end_idx<other_arg.end_idx and parg.end_idx>=other_arg.start_idx:
-            other_arg.start_idx = parg.end_idx+1
-          elif parg.start_idx>other_arg.start_idx and parg.end_idx>=other_arg.end_idx and parg.start_idx<=other_arg.end_idx:
-            other_arg.end_idx = parg.start_idx-1
-          else:
-            continue
+          # print("testing {}".format(other_arg), other_arg != parg, parg._check_overlap(other_arg))
+          if other_arg != parg and parg._check_overlap(other_arg):
+            removing_buffer.append(other_arg)
+        for item in removing_buffer:
+          pred_args.remove(item)
 
   return pred_args
 
 
 def drop_arg(pred_args, gold_args):
-  drop_ind = [(any([parg._check_overlap(garg) for garg in gold_args]), parg) for parg in pred_args]
-  for ind, parg in drop_ind:
-    if not ind:
-      pred_args.remove(parg)
+  drop_ind = [parg for parg in pred_args if not any([parg._check_overlap(garg) for garg in gold_args])]
+  for parg in drop_ind:
+    pred_args.remove(parg)
   return pred_args
 
 
 def add_arg(pred_args, gold_args):
-  add_ind = [(any([garg._check_overlap(parg) for parg in pred_args]), garg) for garg in gold_args]
-  for ind, garg in add_ind:
-    if not ind:
-      pred_args.append(garg)
+  add_ind = [garg for garg in gold_args if not any([garg._check_overlap(parg) for parg in pred_args])]
+  for garg in add_ind:
+    pred_args.append(garg)
   return pred_args
 
 
@@ -291,7 +301,7 @@ def write_back(bc_str, filename):
 
 
 # %%
-transformation_list = ['fix_labels', 'move_arg', 'merge_spans', 'split_spans', 'fix_boundary', 'drop_arg', 'add_arg']
+transformation_list = ['fix_labels', 'move_arg', 'merge_spans', 'split_spans', 'fix_boundary' ,'drop_arg', 'add_arg']
 
 transformations = OrderedDict({
   'fix_labels': fix_labels,
@@ -319,7 +329,7 @@ for t_name in transformation_list:
       gold_args = gold[pred]
       # print("performing {} transformation on {}".format(t_name, pred))
       # print("gold arguments:", gold_args)
-      # print("arguments before transformation {}: ".format(t_name), args)
+      # print("{}'s arguments before transformation {}: ".format(pred, t_name), args)
       args = t_func(args, gold_args)
       # print("{}'s arguments after transformation {}: ".format(pred, t_name), args)
 
