@@ -47,8 +47,15 @@ arg_parser.add_argument('--ensemble', dest='ensemble', action='store_true',
                         help='Whether to ensemble models in save dir.')
 arg_parser.add_argument('--okazaki_discounting', dest='okazaki_discounting', action='store_true',
                         help='whether to use okazaki style of discounting method')
+
 arg_parser.add_argument('--output_attention_weight', dest='output_attention_weight', action='store_true',
                         help='whether to print out attention weight')
+arg_parser.add_argument('--parser_dropout', dest='parser_dropout', action='store_true',
+                        help='whether to add a dropout layer for parser aggregation')
+arg_parser.add_argument('--aggregator_mlp_bn', dest='aggregator_mlp_bn', action='store_true',
+                        help='whether to use batch normalization on aggregator mlp')
+arg_parser.add_argument('--eval_with_transformation', dest='eval_with_transformation', action='store_true',
+                        help='whether to evaluate with result transformation')
 
 
 
@@ -69,6 +76,11 @@ model_config = train_utils.load_json_configs(args.model_configs)
 task_config = train_utils.load_json_configs(args.task_configs, args)
 layer_config = train_utils.load_json_configs(args.layer_configs)
 attention_config = train_utils.load_json_configs(args.attention_configs)
+
+
+## Forcing srl_eval to srl_eval_with_transformation
+
+
 
 # attention_config = {}
 # if args.attention_configs and args.attention_configs != '':
@@ -142,8 +154,12 @@ def dev_input_fn():
 
 
 def eval_fn(input_op, sess):
+  if args.eval_with_transformation:
+    task_config['srl']['eval_fns']['srl_f1']['name'] = 'conll_srl_eval_with_transformation'
+    pass
+
   eval_accumulators = eval_fns.get_accumulators(task_config)
-  eval_results = {}
+  eval_results = OrderedDict({})
   i = 0
   while True:
     i += 1
@@ -214,6 +230,7 @@ def eval_fn(input_op, sess):
           these_labels_masked = np.squeeze(these_labels_masked, -1)
         labels[l] = these_labels_masked
 
+
       # for i in layer_task_config:
       for task, task_map in task_config.items():
         for eval_name, eval_map in task_map['eval_fns'].items():
@@ -243,8 +260,8 @@ with tf.Session() as sess:
 
   tf.logging.log(tf.logging.INFO, "Evaluating on dev files: %s" % str(dev_filenames))
   eval_fn(dev_input_op, sess)
-
-  for test_file, test_input_op in test_input_ops.items():
-    tf.logging.log(tf.logging.INFO, "Evaluating on test file: %s" % str(test_file))
-    eval_fn(test_input_op, sess)
+  if not args.eval_with_transformation:
+    for test_file, test_input_op in test_input_ops.items():
+      tf.logging.log(tf.logging.INFO, "Evaluating on test file: %s" % str(test_file))
+      eval_fn(test_input_op, sess)
 

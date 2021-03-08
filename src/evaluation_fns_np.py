@@ -1,3 +1,6 @@
+import subprocess
+from collections import OrderedDict
+
 import tensorflow as tf
 import numpy as np
 import util
@@ -5,6 +8,16 @@ import os
 import re
 from subprocess import check_output, CalledProcessError
 
+
+transformation_list =[
+  'fix_labels',
+  'move_arg',
+  'merge_spans',
+  'split_spans',
+  'fix_boundary',
+  'drop_arg',
+  'add_arg'
+]
 
 # todo simplify to convert_bio
 def convert_bilou(bio_predicted_roles):
@@ -279,8 +292,6 @@ def conll_srl_eval(srl_predictions, predicate_predictions, words, mask, srl_targ
   # need to print for every word in every sentence
 
   sent_lens = np.sum(mask, -1).astype(np.int32)
-  # print("debug <srl-predictions, targets>: {} \n {}".format(srl_predictions, srl_targets))
-
   # import time
   # debug_fname = pred_srl_eval_file.decode('utf-8') + str(time.time())
   # write_srl_debug(debug_fname, words, predicate_targets, sent_lens, srl_targets, pos_predictions, pos_targets)
@@ -305,6 +316,52 @@ def conll_srl_eval(srl_predictions, predicate_predictions, words, mask, srl_targ
 
   # print( "debug <SRL correct {}, excess {}, missed {}>".format(correct, excess, missed))
   return correct, excess, missed
+
+
+def conll_srl_eval_with_transformation(srl_predictions, predicate_predictions, words, mask, srl_targets, predicate_targets,
+                      pred_srl_eval_file, gold_srl_eval_file, pos_predictions=None, pos_targets=None):
+
+  def run_eval_script(pred_srl_eval_file, gold_srl_eval_file):
+    correct, excess, missed = 0, 0, 0
+    # print("run eval on {} {}".format(pred_srl_eval_file, gold_srl_eval_file))
+    with open(os.devnull, 'w') as devnull:
+      try:
+        srl_eval = check_output(["perl", "bin/srl-eval.pl", gold_srl_eval_file, pred_srl_eval_file], stderr=devnull)
+        srl_eval = srl_eval.decode('utf-8')
+        # print(" debug <srl_eval>: ", srl_eval)
+        # print(srl_eval)
+        correct, excess, missed = map(int, srl_eval.split('\n')[6].split()[1:4])
+      except CalledProcessError as e:
+        tf.logging.log(tf.logging.ERROR, "Call to srl-eval.pl (conll srl eval) failed.")
+    return {'correct': correct, 'missed': missed, 'excess': excess}
+
+  # print( "debug <SRL correct {}, excess {}, missed {}>".format(correct, excess, missed))
+
+  # predictions: num_predicates_in_batch x batch_seq_len tensor of ints
+  # predicate predictions: batch_size x batch_seq_len [ x 1?] tensor of ints (0/1)
+  # words: batch_size x batch_seq_len tensor of ints (0/1)
+
+  # need to print for every word in every sentence
+
+  sent_lens = np.sum(mask, -1).astype(np.int32)
+  # import time
+  # debug_fname = pred_srl_eval_file.decode('utf-8') + str(time.time())
+  # write_srl_debug(debug_fname, words, predicate_targets, sent_lens, srl_targets, pos_predictions, pos_targets)
+
+  # write gold labels
+  write_srl_eval(gold_srl_eval_file, words, predicate_targets, sent_lens, srl_targets)
+
+  # write predicted labels
+  write_srl_eval(pred_srl_eval_file, words, predicate_predictions, sent_lens, srl_predictions)
+
+  subprocess.run(["python", "src/make_srl_transformation.py", pred_srl_eval_file, gold_srl_eval_file])
+
+  transformation_count_map = {'original': run_eval_script(pred_srl_eval_file, gold_srl_eval_file)}
+
+  for t_name in transformation_list:
+    transformation_count_map[t_name] = run_eval_script("{}.t.{}".format(pred_srl_eval_file, t_name), "{}.t.{}".format(gold_srl_eval_file, t_name))
+    # print("{}".format(t_name), transformation_count_map[t_name])
+  return transformation_count_map
 
 
 def conll09_srl_eval(srl_predictions, predicate_predictions, words, mask, srl_targets, predicate_targets,
@@ -419,6 +476,7 @@ def conll_parse_eval(parse_label_predictions, parse_head_predictions, words, mas
       labeled_correct, unlabeled_correct, label_correct = map(lambda l: int(l.split()[3]), first_three_lines)
     except CalledProcessError as e:
       tf.logging.log(tf.logging.ERROR, "Call to eval.pl (conll parse eval) failed.")
+      print(e)
 
   return total, np.array([labeled_correct, unlabeled_correct, label_correct])
 
@@ -446,6 +504,35 @@ def conll_srl_eval_np(predictions, targets, predicate_predictions, words, mask, 
   f1 = 2 * precision * recall / (precision + recall)
 
   return f1
+
+
+def conll_srl_eval_with_transformation_np(predictions, targets, predicate_predictions, words, mask, predicate_targets, reverse_maps,
+                   gold_srl_eval_file, pred_srl_eval_file, pos_predictions, pos_targets, accumulator):
+  print(accumulator)
+  def compute_f1(correct, excess, missed):
+    print("<correct: {}, excess: {}, missed: {}>".format(correct, excess, missed))
+    precision = correct / (correct + excess)
+    recall = correct / (correct + missed)
+    # print("debug <correct: {}|precision: {}|recall: {}>".format(correct, precision, recall))
+    f1 = 2 * precision * recall / (precision + recall)
+    return f1
+  # first, use reverse maps to convert ints to strings
+  str_srl_predictions = [list(map(reverse_maps['srl'].get, s)) for s in predictions]
+  str_words = [list(map(reverse_maps['word'].get, s)) for s in words]
+  str_srl_targets = [list(map(reverse_maps['srl'].get, s)) for s in targets]
+
+  transformation_count_map = conll_srl_eval_with_transformation(str_srl_predictions, predicate_predictions, str_words, mask, str_srl_targets,
+                                           predicate_targets, pred_srl_eval_file, gold_srl_eval_file)
+
+  for item_name, item_value in accumulator.items():
+    item_to_accumulate = transformation_count_map[item_name]
+    # print("<{} item to accumulate>".format(item_name), item_to_accumulate)
+    for item_value_name in item_value.keys():
+      item_value[item_value_name] += item_to_accumulate[item_value_name]
+  # print(accumulator)
+  # a = {item_name: print(**item_value) for item_name, item_value in accumulator}
+  f1_map = {item_name: compute_f1(**item_value) for item_name, item_value in accumulator.items()}
+  return f1_map
 
 
 def conll09_srl_eval_np(predictions, targets, predicate_predictions, words, mask, predicate_targets, reverse_maps,
@@ -506,7 +593,8 @@ fn_dispatcher = {
   'fscore': f1_np,
   'conll_srl_eval': conll_srl_eval_np,
   'conll_parse_eval': conll_parse_eval_np,
-  'conll09_srl_eval': conll09_srl_eval_np
+  'conll09_srl_eval': conll09_srl_eval_np,
+  'conll_srl_eval_with_transformation': conll_srl_eval_with_transformation_np
 }
 
 
@@ -516,6 +604,7 @@ accumulator_factory = {
   'conll_srl_eval': lambda: {'correct': 0., 'excess': 0., 'missed': 0.},
   'conll_parse_eval': lambda: {'total': 0., 'corrects': np.zeros(3)},
   'conll09_srl_eval': lambda: {'correct': 0., 'excess': 0., 'missed': 0.},
+  'conll_srl_eval_with_transformation': lambda: OrderedDict({t: {'correct': 0, 'excess': 0, 'missed': 0} for t in  ['original'] + transformation_list})
 }
 
 
