@@ -14,15 +14,15 @@ cd $PBS_O_WORKDIR
 SAVEDIR=.model/mlp-la/injection/glove-dep/conll05-noncwr
 CONF=config/mlp-la/injection/glove-dep/conll05-noncwr.conf
 SINGULARITY_IMG=/lustre/gk77/k77015/.Singularity/imgs/LISA.simg
-
+ADDITIONAL_PARAMETERS=""
 module add cuda9/9.0.176-cuDNN7.1.4 singularity/2.5.1
 {
-CUDA_VISIBLE_DEVICES=0 singularity exec --nv $SINGULARITY_IMG bin/train.sh $CONF --save_dir $SAVEDIR/run-1 --num_gpus 1  &> $SAVEDIR/run-1/train.log
+CUDA_VISIBLE_DEVICES=0 singularity exec --nv $SINGULARITY_IMG bin/train.sh $CONF --save_dir $SAVEDIR/run-1 --num_gpus 1 $ADDITIONAL_PARAMETERS &> $SAVEDIR/run-1/train.log
 } &
 
 {
 sleep 600
-CUDA_VISIBLE_DEVICES=1 singularity exec --nv $SINGULARITY_IMG bin/train.sh $CONF --save_dir $SAVEDIR/run-2 --num_gpus 1  &> $SAVEDIR/run-2/train.log
+CUDA_VISIBLE_DEVICES=1 singularity exec --nv $SINGULARITY_IMG bin/train.sh $CONF --save_dir $SAVEDIR/run-2 --num_gpus 1 $ADDITIONAL_PARAMETERS &> $SAVEDIR/run-2/train.log
 } &
 wait
 

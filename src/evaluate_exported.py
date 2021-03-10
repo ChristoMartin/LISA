@@ -241,7 +241,7 @@ def eval_fn(input_op, sess):
           eval_results[eval_name] = eval_result
     except tf.errors.OutOfRangeError:
       break
-
+  print(eval_results)
   tf.logging.log(tf.logging.INFO, eval_results)
 
 

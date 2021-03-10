@@ -39,6 +39,7 @@ def graph_mlp_aggregation(dep_graph_list, v, mlp_dropout, projection_dim, parser
   num_dep_grap = dep_graph_list.get_shape()[1]
   with tf.variable_scope('MLP'):
     mlp = MLP(v, projection_dim, keep_prob=mlp_dropout, n_splits=1)
+    mlp = tf.nn.leaky_relu(mlp)
   if batch_norm:
     tf.logging.log(tf.logging.INFO, "Using batch normalization @ {}".format(tf.get_variable_scope().name))
     mean, variance = tf.nn.moments(mlp, [-1], keep_dims=True)
