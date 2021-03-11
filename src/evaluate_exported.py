@@ -1,3 +1,4 @@
+import json
 from collections import OrderedDict
 
 import tensorflow as tf
@@ -90,7 +91,7 @@ layer_task_config, layer_attention_config = util.combine_attn_maps(layer_config,
 hparams = train_utils.load_hparams(args, model_config)
 
 dev_filenames = args.dev_files.split(',')
-test_filenames = args.test_files.split(',') if args.test_files else []
+test_filenames = args.test_files.split(',') if args.test_files and not args.eval_with_transformation else []
 
 vocab = Vocab(data_config, args.save_dir)
 vocab.update(test_filenames)
@@ -241,8 +242,11 @@ def eval_fn(input_op, sess):
           eval_results[eval_name] = eval_result
     except tf.errors.OutOfRangeError:
       break
-  print(eval_results)
-  tf.logging.log(tf.logging.INFO, eval_results)
+  # print(eval_results)
+  for k in eval_results.keys():
+    if isinstance(eval_results[k], np.ndarray):
+      eval_results[k] = eval_results[k].tolist()
+  tf.logging.log(tf.logging.INFO, json.dumps(eval_results))
 
 
 with tf.Session() as sess:
@@ -251,17 +255,16 @@ with tf.Session() as sess:
 
   test_input_ops = {}
   for test_file in test_filenames:
-    def test_input_fn():
-      return train_utils.get_input_fn(vocab, data_config, [test_file], hparams.batch_size, num_epochs=1, shuffle=False,
-                                      embedding_files=embedding_files, is_token_based_batching = hparams.is_token_based_batching)
-    test_input_ops[test_file] = test_input_fn()
+      def test_input_fn():
+        return train_utils.get_input_fn(vocab, data_config, [test_file], hparams.batch_size, num_epochs=1, shuffle=False,
+                                        embedding_files=embedding_files, is_token_based_batching = hparams.is_token_based_batching)
+      test_input_ops[test_file] = test_input_fn()
 
   sess.run(tf.tables_initializer())
 
   tf.logging.log(tf.logging.INFO, "Evaluating on dev files: %s" % str(dev_filenames))
   eval_fn(dev_input_op, sess)
-  if not args.eval_with_transformation:
-    for test_file, test_input_op in test_input_ops.items():
+  for test_file, test_input_op in test_input_ops.items():
       tf.logging.log(tf.logging.INFO, "Evaluating on test file: %s" % str(test_file))
       eval_fn(test_input_op, sess)
 

@@ -200,22 +200,6 @@ def move_arg(pred_args, gold_args):
   return pred_args
 
 
-# %%
-
-# def merge_spans(pred_args, gold_args):
-#   p_end_idx_arg_map = {arg.end_idx: arg for arg in pred_args}
-#   p_start_idx_arg_map = {arg.start_idx: arg for arg in pred_args}
-#   g_tag_arg_map = {arg.tag: arg for arg in gold_args}
-#   for eidx, arg in p_end_idx_arg_map.items():
-#     if eidx + 2 in p_start_idx_arg_map.keys():
-#       pls = p_start_idx_arg_map[eidx + 2]
-#       if arg.tag in g_tag_arg_map.keys(): #pls.tag == arg.tag and
-#         if (arg.start_idx == g_tag_arg_map[arg.tag].start_idx \
-#           and pls.end_idx == g_tag_arg_map[arg.tag].end_idx):
-#           pred_args.append(Argument(arg.tag, arg.start_idx, g_tag_arg_map[arg.tag].end_idx))
-#           pred_args.remove(arg)
-#           pred_args.remove(p_start_idx_arg_map[eidx + 2])
-#   return pred_args
 
 
 def merge_spans(pred_args, gold_args):

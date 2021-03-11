@@ -293,6 +293,136 @@
       }
     }
   },
+  "external_parse_attention_mean_aggregation_dep_cwr": {
+    "attention_fns": {
+      "parse_dep_cwrs": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+               "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mean_aggregation_dep_noncwr": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_stanford_sr": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mean_aggregation_dep_crf&biaffine": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mean_aggregation_dep_crf": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "external_parse_attention_mean_aggregation_dep_all": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          },
+          "eval_attention_aggregation": {
+            "feature": {
+              "parse_biaffine": "one_hot",
+              "parse_crf": "one_hot",
+              "parse_crf2o": "one_hot",
+              "parse_crfnp": "one_hot",
+              "parse_bert_biaffine": "one_hot",
+              "parse_bert_benepar": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
   "external_parse_attention_injection_biaffine": {
     "attention_fns": {
       "parse_dep": {

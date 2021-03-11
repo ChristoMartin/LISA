@@ -508,9 +508,9 @@ def conll_srl_eval_np(predictions, targets, predicate_predictions, words, mask, 
 
 def conll_srl_eval_with_transformation_np(predictions, targets, predicate_predictions, words, mask, predicate_targets, reverse_maps,
                    gold_srl_eval_file, pred_srl_eval_file, pos_predictions, pos_targets, accumulator):
-  print(accumulator)
+  # print(accumulator)
   def compute_f1(correct, excess, missed):
-    print("<correct: {}, excess: {}, missed: {}>".format(correct, excess, missed))
+    # print("<correct: {}, excess: {}, missed: {}>".format(correct, excess, missed))
     precision = correct / (correct + excess)
     recall = correct / (correct + missed)
     # print("debug <correct: {}|precision: {}|recall: {}>".format(correct, precision, recall))
