@@ -39,12 +39,20 @@
     "label": true,
     "vocab": "gold_pos"
   },
+
   "auto_pos": {
     "conll_idx": 6,
     "vocab": "gold_pos",
     "feature": true
   },
   "parse_gold": {
+    "conll_idx": [7, 2],
+    "label": true,
+    "converter":  {
+      "name": "parse_roots_self_loop"
+    }
+  },
+  "parse_decedent_gold": {
     "conll_idx": [7, 2],
     "label": true,
     "converter":  {

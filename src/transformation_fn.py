@@ -16,7 +16,21 @@ def roll(matrix, shift):
   else:
     return matrix
 
+def get_decedent_mtx(heads):
+  # heads: (B, S)
+  heads = tf.cast(heads, tf.int32)
+  seq_len = tf.shape(heads)[1]
+  print(seq_len)
+  array_idx = tf.range(400, dtype=tf.int32)[:seq_len]
+  mtx_idxer = tf.tile(tf.reshape(array_idx, [-1, 1]), [1, seq_len])
+  idxer = tf.tile(tf.reshape(array_idx, [1, -1]), [seq_len, 1])
+  heads = tf.tile(tf.expand_dims(heads, 1), [1, seq_len, 1])
+  one_mtx = tf.ones_like(mtx_idxer, dtype=tf.float32)
+  decedent_mtx = tf.map_fn(lambda x: tf.where(tf.logical_or(tf.equal(mtx_idxer, x), tf.equal(mtx_idxer, idxer)),  constants.VERY_LARGE * one_mtx, constants.VERY_SMALL * one_mtx), heads, dtype=tf.float32)
+  return tf.nn.softmax(decedent_mtx)
 
+def get_decedent_mtx_from_score(heads):
+  return tf.nn.softmax(tf.transpose(heads, perm=[0, 2, 1]))
 
 def one_hot(heads):
   return tf.one_hot(heads, tf.shape(heads)[-1], on_value=constants.VERY_LARGE,
@@ -70,7 +84,9 @@ dispatcher = {
   'local_window_balanced': local_window_balanced,
   'local_window_ltilted': local_window_ltilted,
   'local_window_rtilted': local_window_rtilted,
-  'chunk_to_block_diag': chunk_to_block_diag
+  'chunk_to_block_diag': chunk_to_block_diag,
+  'get_decedent_mtx': get_decedent_mtx,
+  'get_decedent_mtx_from_score': get_decedent_mtx_from_score
 }
 
 
@@ -78,14 +94,14 @@ def dispatch(fn_name):
   try:
     return dispatcher[fn_name]
   except KeyError:
-    print('Undefined transformation function `%s' % fn_name)
+    print('Undefined transformation function %s' % fn_name)
     exit(1)
 
 def get_params(input, transformation_name, src_name):
   transformation_diag_width_in_name = ['local_window_balanced',
                                  'local_window_ltilted',
                                  'local_window_rtilted']
-  transformation_pass_through = ['one_hot']
+  transformation_pass_through = ['one_hot', 'get_decedent_mtx']
   if transformation_name in transformation_pass_through:
     return {'heads': input}
   elif transformation_name in transformation_diag_width_in_name:

@@ -19,6 +19,46 @@
       }
     }
   },
+  "internal_decedent_attention": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_gold": "get_decedent_mtx"
+            }
+          },
+          "eval_attention_aggregation": {
+            "output": {
+              "parse_gold": ["predictions", "get_decedent_mtx"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "internal_decedent_attention_with_score": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_gold": "get_decedent_mtx"
+            }
+          },
+          "eval_attention_aggregation": {
+            "output": {
+              "parse_gold": ["scores", "get_decedent_mtx_from_score"]
+            }
+          }
+        }
+      }
+    }
+  },
   "external_parse_attention_linear_aggregation_dep_cwr": {
     "attention_fns": {
       "parse_dep_cwrs": {
@@ -609,6 +649,26 @@
           "eval_attention_aggregation": {
             "label": {
                "parse_gold": "one_hot"
+            }
+          }
+        }
+      }
+    }
+  },
+  "decedent_attention_injection_gold": {
+    "attention_fns": {
+      "parse_dep": {
+        "name": "mean_aggregation",
+        "length": 1,
+        "params": {
+          "train_attention_aggregation": {
+            "label": {
+              "parse_gold": "get_decedent_mtx"
+            }
+          },
+          "eval_attention_aggregation": {
+            "label": {
+               "parse_gold": "get_decedent_mtx"
             }
           }
         }

@@ -5,6 +5,8 @@ from tensorflow.estimator import ModeKeys
 import nn_utils
 import tf_utils
 
+import transformation_fn
+
 
 def softmax_classifier(mode, hparams, model_config, inputs, targets, num_labels, tokens_to_keep, transition_params):
 
@@ -165,6 +167,56 @@ def parse_bilinear(mode, hparams, model_config, inputs, targets, num_labels, tok
     }
 
   return output
+
+def parse_bilinear_transformed(mode, hparams, model_config, inputs, targets, num_labels, tokens_to_keep, transition_params):
+  print("using transformed bilinear parser")
+  # targets = tf.Print(targets, [targets], "transformed target")
+  # print(targets)
+
+  class_mlp_size = model_config['class_mlp_size']
+  attn_mlp_size = model_config['attn_mlp_size']
+
+  if transition_params is not None:
+    print('Transition params not supported in parse_bilinear')
+    exit(1)
+
+  with tf.variable_scope('parse_bilinear'):
+    with tf.variable_scope('MLP'):
+      dep_mlp, head_mlp = nn_utils.MLP(inputs, class_mlp_size + attn_mlp_size, n_splits=2,
+                                       keep_prob=hparams.mlp_dropout)
+      dep_arc_mlp, dep_rel_mlp = dep_mlp[:, :, :attn_mlp_size], dep_mlp[:, :, attn_mlp_size:]
+      head_arc_mlp, head_rel_mlp = head_mlp[:, :, :attn_mlp_size], head_mlp[:, :, attn_mlp_size:]
+
+    with tf.variable_scope('Arcs'):
+      # batch_size x batch_seq_len x batch_seq_len
+      arc_logits = nn_utils.bilinear_classifier(dep_arc_mlp, head_arc_mlp, hparams.bilinear_dropout)
+
+    num_tokens = tf.reduce_sum(tokens_to_keep)
+
+    predictions = tf.argmax(arc_logits, -1)
+    probabilities = tf.nn.softmax(arc_logits)
+
+    # arc_logits = tf.Print(arc_logits, [arc_logits], 'parse_bilinear_arc_logit')
+    # targets = tf.Print(targets, [])
+    # targets = tf.Print(targets, [targets, tf.reduce_sum(targets)], 'parse_bilinear_targets, checking whether the target vector is passed correctly')
+
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=arc_logits, labels=targets)
+    # cross_entropy = tf.Print(cross_entropy, [cross_entropy], 'parse_ce_loss')
+    loss = tf.reduce_sum((cross_entropy * tokens_to_keep))/ num_tokens
+    # loss = 0.
+    # loss = tf.zeros([])
+    # loss = tf.Print(loss, [loss], 'parse_bilinear')
+    output = {
+      'loss': loss,
+      'predictions': predictions,
+      'probabilities': probabilities,
+      'scores': arc_logits,
+      'dep_rel_mlp': dep_rel_mlp,
+      'head_rel_mlp': head_rel_mlp
+    }
+
+  return output
+
 
 def parse_aggregation(mode, hparams, model_config, inputs, targets, num_labels, tokens_to_keep, transition_params):
   class_mlp_size = model_config['class_mlp_size']
@@ -381,6 +433,7 @@ dispatcher = {
   'joint_softmax_classifier': joint_softmax_classifier,
   'softmax_classifier': softmax_classifier,
   'parse_bilinear': parse_bilinear,
+  'parse_bilinear_transformed': parse_bilinear_transformed,
   'conditional_bilinear': conditional_bilinear,
 }
 
@@ -401,7 +454,7 @@ def get_params(mode, model_config, task_map, train_outputs, features, labels, cu
             'hparams': hparams}
   params_map = task_map['params'] if 'params' in task_map else {}
   for param_name, param_values in params_map.items():
-    # print(param_name, ": ", param_values)
+    print(param_name, ": ", param_values)
 
     # if this is a map-type param, do map lookups and pass those through
     if 'joint_maps' in param_values:
@@ -411,6 +464,9 @@ def get_params(mode, model_config, task_map, train_outputs, features, labels, cu
     elif 'feature' in param_values:
       params[param_name] = features[param_values['feature']]
     # otherwise, this is a previous-prediction-type param, look those up and pass through
+    elif 'transformation' == param_name:
+      params['targets'] = transformation_fn.dispatch(param_values)(params['targets'])
+      # raise NotImplementedError
     elif 'layer' in param_values:
       # print("debug <train outputs>: ", train_outputs)
       outputs_layer = train_outputs[param_values['layer']]

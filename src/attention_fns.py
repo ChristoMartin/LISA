@@ -87,7 +87,12 @@ def get_params(mode, attn_map, train_outputs, features, labels, hparams, model_c
         outputs = []
         for layer_name, output_name in param_values['output'].items():
           outputs_layer = train_outputs[layer_name]
-          outputs += [outputs_layer[output_name]]
+          if isinstance(output_name, list):
+            #Here, uses (output_name, transformation_fn_name) pair
+            output = transformation_fn.dispatch(output_name[1])(outputs_layer[output_name[0]])
+            outputs += [output]
+          else:
+            outputs += [outputs_layer[output_name]]
         params[param_name] = tf.stack(outputs, axis=1)
       else:
         raise NotImplementedError

@@ -299,8 +299,8 @@ class LISAModel:
 
               # todo test a list of tasks for each layer
               for task, task_map in self.task_config[i].items():
-                # print("debug <task>: ", task)
-                # print("debug <task map>:" , task_map)
+                print("debug <task>: ", task)
+                print("debug <task map>:" , task_map)
                 task_labels = labels[task]
                 # task_labels = tf.Print(task_labels, [task_labels] , 'task_label'.format(task))
                 task_vocab_size = self.vocab.vocab_names_sizes[task] if task in self.vocab.vocab_names_sizes else -1
@@ -327,7 +327,7 @@ class LISAModel:
                                                          transition_params, hparams)
                 # print("debug <dispatch into {}>".format(task_map['output_fn']['name']))
                 task_outputs = output_fns.dispatch(task_map['output_fn']['name'])(**output_fn_params)
-                # print("debug <task_outputs>: ", task_outputs)
+                print("debug <task_outputs>: ", task_outputs)
                 # want task_outputs to have:
                 # - predictions
                 # - loss
